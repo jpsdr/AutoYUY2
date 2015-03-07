@@ -780,22 +780,22 @@ void AutoYUY2::Convert_Automatic(const uint8_t *srcYp, const uint8_t *srcUp,
 			
 			if (((abs((int16_t)srcUpn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnnn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
-				((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4]) ||
-				(srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4]))) ||
+				(((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4])) ||
+				((srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4])))) ||
 				((abs((int16_t)srcVpn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnnn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
-				((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4]) ||
-				(srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4]))))
+				(((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4])) ||
+				((srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4])))))
 				interlaced_tab[1][x_4]=true;
 			else interlaced_tab[1][x_4]=false;
 			if (((abs((int16_t)srcUp[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnn[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
-				((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4]) ||
-				(srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4]))) ||
+				(((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4])) ||
+				((srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4])))) ||
 				((abs((int16_t)srcVp[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnn[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
-				((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4]) ||
-				(srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4]))))
+				(((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4])) ||
+				((srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4])))))
 				interlaced_tab[0][x_4]=true;
 			else interlaced_tab[0][x_4]=false;
 			
@@ -867,12 +867,12 @@ void AutoYUY2::Convert_Automatic(const uint8_t *srcYp, const uint8_t *srcUp,
 			
 			if (((abs((int16_t)srcUp[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnn[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
-				((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4]) ||
-				(srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4]))) ||
+				(((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4])) ||
+				((srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4])))) ||
 				((abs((int16_t)srcVp[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnn[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
-				((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4]) ||
-				(srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4]))))
+				(((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4])) ||
+				((srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4])))))
 				interlaced_tab[index_tab_2][x_4]=true;
 			else interlaced_tab[index_tab_2][x_4]=false;			
 
@@ -932,12 +932,12 @@ void AutoYUY2::Convert_Automatic(const uint8_t *srcYp, const uint8_t *srcUp,
 			
 			if (((abs((int16_t)srcUpn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnnn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
-				((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4]) ||
-				(srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4]))) ||
+				(((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4])) ||
+				((srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4])))) ||
 				((abs((int16_t)srcVpn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnnn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
-				((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4]) ||
-				(srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4]))))
+				(((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4])) ||
+				((srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4])))))
 				interlaced_tab[index_tab_0][x_4]=true;
 			else interlaced_tab[index_tab_0][x_4]=false;
 
@@ -1156,22 +1156,22 @@ void AutoYUY2::Convert_Test(const uint8_t *srcYp, const uint8_t *srcUp,
 			
 			if (((abs((int16_t)srcUpn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnnn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
-				((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4]) ||
-				(srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4]))) ||
+				(((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4])) ||
+				((srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4])))) ||
 				((abs((int16_t)srcVpn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnnn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
-				((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4]) ||
-				(srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4]))))
+				(((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4])) ||
+				((srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4])))))
 				interlaced_tab[1][x_4]=true;
 			else interlaced_tab[1][x_4]=false;
 			if (((abs((int16_t)srcUp[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnn[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
-				((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4]) ||
-				(srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4]))) ||
+				(((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4])) ||
+				((srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4])))) ||
 				((abs((int16_t)srcVp[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnn[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
-				((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4]) ||
-				(srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4]))))
+				(((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4])) ||
+				((srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4])))))
 				interlaced_tab[0][x_4]=true;
 			else interlaced_tab[0][x_4]=false;
 			
@@ -1241,12 +1241,12 @@ void AutoYUY2::Convert_Test(const uint8_t *srcYp, const uint8_t *srcUp,
 		{
 			if (((abs((int16_t)srcUp[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnn[x_4]-(int16_t)srcUpn[x_4])>=threshold) &&
-				((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4]) ||
-				(srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4]))) ||
+				(((srcUp[x_4]>srcUpn[x_4]) && (srcUpnn[x_4]>srcUpn[x_4])) ||
+				((srcUp[x_4]<srcUpn[x_4]) && (srcUpnn[x_4]<srcUpn[x_4])))) ||
 				((abs((int16_t)srcVp[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnn[x_4]-(int16_t)srcVpn[x_4])>=threshold) &&
-				((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4]) ||
-				(srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4]))))
+				(((srcVp[x_4]>srcVpn[x_4]) && (srcVpnn[x_4]>srcVpn[x_4])) ||
+				((srcVp[x_4]<srcVpn[x_4]) && (srcVpnn[x_4]<srcVpn[x_4])))))
 				interlaced_tab[index_tab_2][x_4]=true;
 			else interlaced_tab[index_tab_2][x_4]=false;			
 
@@ -1310,12 +1310,12 @@ void AutoYUY2::Convert_Test(const uint8_t *srcYp, const uint8_t *srcUp,
 		{
 			if (((abs((int16_t)srcUpn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcUpnnn[x_4]-(int16_t)srcUpnn[x_4])>=threshold) &&
-				((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4]) ||
-				(srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4]))) ||
+				(((srcUpn[x_4]>srcUpnn[x_4]) && (srcUpnnn[x_4]>srcUpnn[x_4])) ||
+				((srcUpn[x_4]<srcUpnn[x_4]) && (srcUpnnn[x_4]<srcUpnn[x_4])))) ||
 				((abs((int16_t)srcVpn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
 				(abs((int16_t)srcVpnnn[x_4]-(int16_t)srcVpnn[x_4])>=threshold) &&
-				((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4]) ||
-				(srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4]))))
+				(((srcVpn[x_4]>srcVpnn[x_4]) && (srcVpnnn[x_4]>srcVpnn[x_4])) ||
+				((srcVpn[x_4]<srcVpnn[x_4]) && (srcVpnnn[x_4]<srcVpnn[x_4])))))
 				interlaced_tab[index_tab_0][x_4]=true;
 			else interlaced_tab[index_tab_0][x_4]=false;
 
