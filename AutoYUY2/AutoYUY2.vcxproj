@@ -538,6 +538,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -557,6 +559,8 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -589,6 +593,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -623,6 +629,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_Core2_SSE4.2|Win32'">
@@ -660,6 +668,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -699,6 +709,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_Core2_AVX|Win32'">
@@ -736,6 +748,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -776,6 +790,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -815,6 +831,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_Core2_AVX2|x64'">
@@ -851,6 +869,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_P4|Win32'">
@@ -888,6 +908,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -927,6 +949,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_XP_P3|Win32'">
@@ -959,6 +983,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -993,6 +1019,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_XP_P4|Win32'">
@@ -1025,6 +1053,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -1059,6 +1089,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_P4_SSE3|Win32'">
@@ -1096,6 +1128,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -1135,6 +1169,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_P3|Win32'">
@@ -1169,6 +1205,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -1205,6 +1243,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_Core2|Win32'">
@@ -1242,6 +1282,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -1281,6 +1323,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Intel_XP_Core2_SSE4.1|Win32'">
@@ -1318,6 +1362,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <MASM>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -1357,6 +1403,8 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>.\asmlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libacof64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
