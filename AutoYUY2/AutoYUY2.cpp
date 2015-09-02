@@ -64,7 +64,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 1.3.0 JPSDR"
+#define VERSION "AutoYUY2 1.3.1 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -208,7 +208,7 @@ AutoYUY2::~AutoYUY2()
 inline void AutoYUY2::Move_Full(const void *src, void *dst, const int32_t w,const int32_t h,
 		int src_pitch,int dst_pitch)
 {
-	if ((src_pitch==dst_pitch) && (src_pitch=w))
+	if ((src_pitch==dst_pitch) && (src_pitch==w))
 		A_memcpy(dst,src,(size_t)h*(size_t)w);
 	else
 	{
