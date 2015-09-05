@@ -85,8 +85,9 @@ private:
 	uint16_t lookup[768];
 	bool *interlaced_tab[Interlaced_Tab_Size];
 	bool SSE2_Enable;
+	size_t Cache_Setting;
 
-	inline void Move_Full(const void *src, void *dst, const int32_t w,const int32_t h,
+	inline void Move_Full(const void *src_, void *dst_, const int32_t w,const int32_t h,
 		int src_pitch,int dst_pitch);
 
 	void Convert_Progressive(const uint8_t *srcYp, const uint8_t *srcUp,
@@ -168,29 +169,18 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, IScrip
 		lookup[i+256]=(uint16_t)(5*i);
 		lookup[i+512]=(uint16_t)(7*i);
 	}
-		
+
+	SSE2_Enable=((env->GetCPUFlags()&CPUF_SSE2)!=0);
+
 	const size_t img_size=vi.BMPSize();
 
 	if (img_size<=MAX_CACHE_SIZE)
 	{
-		if (CPU_Cache_Size>=img_size)
-		{
-			SetMemcpyCacheLimit(img_size);
-			SetMemsetCacheLimit(img_size);
-		}
-		else
-		{
-			SetMemcpyCacheLimit(16);
-			SetMemsetCacheLimit(16);
-		}
+		if (CPU_Cache_Size>=img_size) Cache_Setting=img_size;
+		else Cache_Setting=16;
 	}
-	else
-	{
-		SetMemcpyCacheLimit(16);
-		SetMemsetCacheLimit(16);
-	}
+	else Cache_Setting=16;
 
-	SSE2_Enable=((env->GetCPUFlags()&CPUF_SSE2)!=0);
 }
 
 AutoYUY2::~AutoYUY2() 
@@ -205,21 +195,28 @@ AutoYUY2::~AutoYUY2()
 
 
 
-inline void AutoYUY2::Move_Full(const void *src, void *dst, const int32_t w,const int32_t h,
+inline void AutoYUY2::Move_Full(const void *src_, void *dst_, const int32_t w,const int32_t h,
 		int src_pitch,int dst_pitch)
 {
-	if ((src_pitch==dst_pitch) && (src_pitch==w))
+	const uint8_t *src=(uint8_t *)src_;
+	uint8_t *dst=(uint8_t *)dst_;
+
+	if ((src_pitch==dst_pitch) && (abs(src_pitch)==w))
+	{
+		if (src_pitch<0)
+		{
+			src+=(h-1)*src_pitch;
+			dst+=(h-1)*dst_pitch;
+		}
 		A_memcpy(dst,src,(size_t)h*(size_t)w);
+	}
 	else
 	{
-		const uint8_t *src_=(uint8_t *)src;
-		uint8_t *dst_=(uint8_t *)dst;
-
 		for(int i=0; i<h; i++)
 		{
-			A_memcpy(dst_,src_,w);
-			src_+=src_pitch;
-			dst_+=dst_pitch;
+			A_memcpy(dst,src,w);
+			src+=src_pitch;
+			dst+=dst_pitch;
 		}
 	}
 }
@@ -2653,6 +2650,9 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	int dst_pitch_Y,dst_pitchUV;
 	int src_pitch_Y,src_pitchUV;
 
+	SetMemcpyCacheLimit(Cache_Setting);
+	SetMemsetCacheLimit(Cache_Setting);
+
 	switch(output)
 	{
 		case 0 : 
@@ -2780,7 +2780,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	if ((output<0) || (output>1))
 		env->ThrowError("AutoYUY2 : [output] must be 0 or 1");
 
-  return new AutoYUY2(args[0].AsClip(), thrs, mode, output, env);
+	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
