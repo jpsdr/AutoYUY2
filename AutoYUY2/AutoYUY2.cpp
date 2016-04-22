@@ -918,6 +918,7 @@ void AutoYUY2::Convert_Automatic_YV16(const uint8_t *srcYp, const uint8_t *srcUp
 		{
 			const bool *itabu0=interlaced_tab_U[index_tab_0],*itabu1=interlaced_tab_U[index_tab_1];
 
+			// Upsample as needed.
 			for(int32_t j=0; j<w_UV; j++)
 			{
 				if ((itabu0[j]) || (itabu1[j]))
@@ -963,6 +964,7 @@ void AutoYUY2::Convert_Automatic_YV16(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for(int32_t j=0; j<w_UV; j++)
 			{
+				// Upsample as needed.
 				if ((itabu1[j]) || (itabu2[j]))
 				{
 					dst_U[j]=(uint8_t)((lookup[src_Unn[j]]+lookup[(uint16_t)src_U[j]+256]+4)>>3);
@@ -1303,6 +1305,7 @@ void AutoYUY2::Convert_Test_YV16(const uint8_t *srcYp, const uint8_t *srcUp,
 		{
 			const bool *itabu0=interlaced_tab_U[index_tab_0],*itabu1=interlaced_tab_U[index_tab_1];
 
+			// Upsample as needed.
 			for(int32_t j=0; j<w_UV; j++)
 			{
 				if ((itabu0[j]) || (itabu1[j]))
@@ -1348,6 +1351,7 @@ void AutoYUY2::Convert_Test_YV16(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for(int32_t j=0; j<w_UV; j++)
 			{
+				// Upsample as needed.
 				if ((itabu1[j]) || (itabu2[j]))
 				{
 					dst_U[j]=239;
@@ -1633,8 +1637,9 @@ void AutoYUY2::Convert_Progressive_YUY2(const uint8_t *srcYp, const uint8_t *src
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_U[j]]+(uint16_t)src_Un[j]+2) >> 2);
 				(dst++)->v=(uint8_t)((lookup[src_V[j]]+(uint16_t)src_Vn[j]+2) >> 2);
 			}
@@ -1659,8 +1664,9 @@ void AutoYUY2::Convert_Progressive_YUY2(const uint8_t *srcYp, const uint8_t *src
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_U[j]]+(uint16_t)src_Up[j]+2) >> 2);
 				(dst++)->v=(uint8_t)((lookup[src_V[j]]+(uint16_t)src_Vp[j]+2) >> 2);
 			}
@@ -1675,8 +1681,9 @@ void AutoYUY2::Convert_Progressive_YUY2(const uint8_t *srcYp, const uint8_t *src
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_U[j]]+(uint16_t)src_Un[j]+2) >> 2);
 				(dst++)->v=(uint8_t)((lookup[src_V[j]]+(uint16_t)src_Vn[j]+2) >> 2);
 			}
@@ -1701,8 +1708,9 @@ void AutoYUY2::Convert_Progressive_YUY2(const uint8_t *srcYp, const uint8_t *src
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_U[j]]+(uint16_t)src_Up[j]+2) >> 2);
 				(dst++)->v=(uint8_t)((lookup[src_V[j]]+(uint16_t)src_Vp[j]+2) >> 2);
 			}
@@ -1853,8 +1861,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Unn[j]]+lookup[(uint16_t)src_U[j]+256]+4)>>3);
 				(dst++)->v=(uint8_t)((lookup[src_Vnn[j]]+lookup[(uint16_t)src_V[j]+256]+4)>>3);
 			}
@@ -1869,8 +1878,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_Un[j]+512]+(uint16_t)src_Unnn[j]+4)>>3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_Vn[j]+512]+(uint16_t)src_Vnnn[j]+4)>>3);
 			}
@@ -1901,8 +1911,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_U[j]+512]+(uint16_t)src_Upp[j]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_V[j]+512]+(uint16_t)src_Vpp[j]+4) >> 3);
 			}
@@ -1917,8 +1928,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4) >> 3);
 			}
@@ -1933,8 +1945,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Unn[j]]+lookup[(uint16_t)src_U[j]+256]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[src_Vnn[j]]+lookup[(uint16_t)src_V[j]+256]+4) >> 3);
 			}
@@ -1949,8 +1962,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_Un[j]+512]+(uint16_t)src_Unnn[j]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_Vn[j]+512]+(uint16_t)src_Vnnn[j]+4) >> 3);
 			}
@@ -1981,8 +1995,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_U[j]+512]+(uint16_t)src_Upp[j]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_V[j]+512]+(uint16_t)src_Vpp[j]+4) >> 3);
 			}
@@ -1997,8 +2012,9 @@ void AutoYUY2::Convert_Interlaced_YUY2(const uint8_t *srcYp, const uint8_t *srcU
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4) >> 3);
 			}
@@ -2207,8 +2223,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_U[j];
 				(dst++)->v=src_V[j];
 			}
@@ -2223,8 +2240,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_Un[j];
 				(dst++)->v=src_Vn[j];
 			}
@@ -2239,8 +2257,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Unn[j]]+lookup[(uint16_t)src_U[j]+256]+4)>>3);
 				(dst++)->v=(uint8_t)((lookup[src_Vnn[j]]+lookup[(uint16_t)src_V[j]+256]+4)>>3);
 			}
@@ -2257,8 +2276,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{	
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_U[j]-(int16_t)src_Un[j])>=threshold) &&
 					(abs((int16_t)src_Unn[j]-(int16_t)src_Un[j])>=threshold) &&
@@ -2322,8 +2342,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				// Upsample as needed.
 				if ((itabu0[j]) || (itabu1[j]))
@@ -2360,8 +2381,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{			
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_U[j]-(int16_t)src_Un[j])>=threshold) &&
 					(abs((int16_t)src_Unn[j]-(int16_t)src_Un[j])>=threshold) &&
@@ -2410,8 +2432,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				// Upsample as needed.
 				if ((itabu1[j]) || (itabu2[j]))
@@ -2448,8 +2471,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{			
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_Un[j]-(int16_t)src_Unn[j])>=threshold) &&
 					(abs((int16_t)src_Unnn[j]-(int16_t)src_Unn[j])>=threshold) &&
@@ -2516,8 +2540,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_U[j]+512]+(uint16_t)src_Upp[j]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_V[j]+512]+(uint16_t)src_Vpp[j]+4) >> 3);
 			}
@@ -2532,8 +2557,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4) >> 3);
 			}
@@ -2548,8 +2574,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_U[j];
 				(dst++)->v=src_V[j];
 			}
@@ -2564,8 +2591,9 @@ void AutoYUY2::Convert_Automatic_YUY2(const uint8_t *srcYp, const uint8_t *srcUp
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_Un[j];
 				(dst++)->v=src_Vn[j];
 			}
@@ -2628,8 +2656,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_U[j];
 				(dst++)->v=src_V[j];
 			}
@@ -2644,8 +2673,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_Un[j];
 				(dst++)->v=src_Vn[j];
 			}
@@ -2660,8 +2690,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Unn[j]]+lookup[(uint16_t)src_U[j]+256]+4)>>3);
 				(dst++)->v=(uint8_t)((lookup[src_Vnn[j]]+lookup[(uint16_t)src_V[j]+256]+4)>>3);
 			}
@@ -2678,8 +2709,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{	
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_U[j]-(int16_t)src_Un[j])>=threshold) &&
 					(abs((int16_t)src_Unn[j]-(int16_t)src_Un[j])>=threshold) &&
@@ -2743,8 +2775,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				// Upsample as needed.
 				if ((itabu0[j]) || (itabu1[j]))
@@ -2781,8 +2814,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{			
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_U[j]-(int16_t)src_Un[j])>=threshold) &&
 					(abs((int16_t)src_Unn[j]-(int16_t)src_Un[j])>=threshold) &&
@@ -2831,8 +2865,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				// Upsample as needed.
 				if ((itabu1[j]) || (itabu2[j]))
@@ -2869,8 +2904,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{			
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 
 				if (((abs((int16_t)src_Un[j]-(int16_t)src_Unn[j])>=threshold) &&
 					(abs((int16_t)src_Unnn[j]-(int16_t)src_Unn[j])>=threshold) &&
@@ -2937,8 +2973,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[(uint16_t)src_U[j]+512]+(uint16_t)src_Upp[j]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[(uint16_t)src_V[j]+512]+(uint16_t)src_Vpp[j]+4) >> 3);
 			}
@@ -2953,8 +2990,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4) >> 3);
 				(dst++)->v=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4) >> 3);
 			}
@@ -2969,8 +3007,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_U[j];
 				(dst++)->v=src_V[j];
 			}
@@ -2985,8 +3024,9 @@ void AutoYUY2::Convert_Test_YUY2(const uint8_t *srcYp, const uint8_t *srcUp,
 
 			for (int32_t j=0; j<w_UV; j++)
 			{
-				dst->y1=src_Y[i++];
-				dst->y2=src_Y[i++];
+				dst->y1=src_Y[i];
+				dst->y2=src_Y[i+1];
+				i+=2;
 				dst->u=src_Un[j];
 				(dst++)->v=src_Vn[j];
 			}
