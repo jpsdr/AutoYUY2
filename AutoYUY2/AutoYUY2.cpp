@@ -64,11 +64,11 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 3.0.0 JPSDR"
+#define VERSION "AutoYUY2 3.0.1 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
-#define MAX_MT_THREADS 64
+#define MAX_MT_THREADS 128
 
 #define myfree(ptr) if (ptr!=NULL) { free(ptr); ptr=NULL;}
 #define myCloseHandle(ptr) if (ptr!=NULL) { CloseHandle(ptr); ptr=NULL;}
@@ -141,36 +141,36 @@ private:
 	MT_Data_Thread MT_Thread[MAX_MT_THREADS];
 	MT_Data_Info MT_Data[MAX_MT_THREADS];
 	DWORD tids[MAX_MT_THREADS];
-	int8_t CPUs_number,threads_number;
+	uint8_t CPUs_number,threads_number;
 	HANDLE ghMutex;
 	
 	static DWORD WINAPI StaticThreadpool( LPVOID lpParam );
 
-	uint8_t CreateMTData(int8_t max_threads,int32_t size_x,int32_t size_y);
+	uint8_t CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y);
 
 	void FreeData(void);
 
 	inline void Move_Full(const void *src_, void *dst_, const int32_t w,const int32_t h,
 		int src_pitch,int dst_pitch);
 
-	void Convert_Progressive_YUY2(int8_t thread_num);
-	void Convert_Progressive_YUY2_SSE(int8_t thread_num);
-	void Convert_Interlaced_YUY2(int8_t thread_num);
-	void Convert_Interlaced_YUY2_SSE(int8_t thread_num);
-	void Convert_Automatic_YUY2(int8_t thread_num);
-	void Convert_Test_YUY2(int8_t thread_num);
+	void Convert_Progressive_YUY2(uint8_t thread_num);
+	void Convert_Progressive_YUY2_SSE(uint8_t thread_num);
+	void Convert_Interlaced_YUY2(uint8_t thread_num);
+	void Convert_Interlaced_YUY2_SSE(uint8_t thread_num);
+	void Convert_Automatic_YUY2(uint8_t thread_num);
+	void Convert_Test_YUY2(uint8_t thread_num);
 
-	void Convert_Progressive_YV16(int8_t thread_num);
-	void Convert_Progressive_YV16_SSE(int8_t thread_num);
-	void Convert_Interlaced_YV16(int8_t thread_num);
-	void Convert_Interlaced_YV16_SSE(int8_t thread_num);
-	void Convert_Automatic_YV16(int8_t thread_num);
-	void Convert_Test_YV16(int8_t thread_num);
+	void Convert_Progressive_YV16(uint8_t thread_num);
+	void Convert_Progressive_YV16_SSE(uint8_t thread_num);
+	void Convert_Interlaced_YV16(uint8_t thread_num);
+	void Convert_Interlaced_YV16_SSE(uint8_t thread_num);
+	void Convert_Automatic_YV16(uint8_t thread_num);
+	void Convert_Test_YV16(uint8_t thread_num);
 };
 
 
 
-uint8_t AutoYUY2::CreateMTData(int8_t max_threads,int32_t size_x,int32_t size_y)
+uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y)
 {
 	if ((max_threads<=1) || (max_threads>threads_number))
 	{
@@ -197,7 +197,7 @@ uint8_t AutoYUY2::CreateMTData(int8_t max_threads,int32_t size_x,int32_t size_y)
 
 	dh_Y=(size_y+(int32_t)max_threads-1)/(int32_t)max_threads;
 	if (dh_Y<16) dh_Y=16;
-	if ((dh_Y&3)!=0) dh_Y=((dh_Y+3) >> 2) << 2;
+	if ((dh_Y & 3)!=0) dh_Y=((dh_Y+3) >> 2) << 2;
 
 	h_y=0;
 	while (h_y<(size_y-16))
@@ -298,13 +298,13 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	}
 	ghMutex=NULL;
 
-	CPUs_number=(int8_t)num_processors();
+	CPUs_number=(uint8_t)num_processors();
 	if (CPUs_number>MAX_MT_THREADS) CPUs_number=MAX_MT_THREADS;
 
 	if (vi.height>=32)
 	{
 		if (threads==0) threads_number=CPUs_number;
-		else threads_number=threads;
+		else threads_number=(uint8_t)threads;
 	}
 	else threads_number=1;
 
@@ -379,8 +379,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		{
 			for (i=0; i<Interlaced_Tab_Size; i++)
 			{
-				interlaced_tab_U[j][i]=(bool*)malloc(((vi.width+1)>>1)*sizeof(bool));
-				interlaced_tab_V[j][i]=(bool*)malloc(((vi.width+1)>>1)*sizeof(bool));
+				interlaced_tab_U[j][i]=(bool*)malloc((vi.width>>1)*sizeof(bool));
+				interlaced_tab_V[j][i]=(bool*)malloc((vi.width>>1)*sizeof(bool));
 			}
 		}
 
@@ -498,7 +498,7 @@ inline void AutoYUY2::Move_Full(const void *src_, void *dst_, const int32_t w,co
 }
 
 
-void AutoYUY2::Convert_Interlaced_YV16_SSE(int8_t thread_num)
+void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -714,7 +714,7 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(int8_t thread_num)
 }
 
 
-void AutoYUY2::Convert_Interlaced_YV16(int8_t thread_num)
+void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -929,7 +929,7 @@ void AutoYUY2::Convert_Interlaced_YV16(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Progressive_YV16_SSE(int8_t thread_num)
+void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -1075,7 +1075,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Progressive_YV16(int8_t thread_num)
+void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -1220,7 +1220,7 @@ void AutoYUY2::Convert_Progressive_YV16(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Automatic_YV16(int8_t thread_num)
+void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -1675,7 +1675,7 @@ void AutoYUY2::Convert_Automatic_YV16(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Test_YV16(int8_t thread_num)
+void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -2130,7 +2130,7 @@ void AutoYUY2::Convert_Test_YV16(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Progressive_YUY2(int8_t thread_num)
+void AutoYUY2::Convert_Progressive_YUY2(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -2278,7 +2278,7 @@ void AutoYUY2::Convert_Progressive_YUY2(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Progressive_YUY2_SSE(int8_t thread_num)
+void AutoYUY2::Convert_Progressive_YUY2_SSE(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -2382,7 +2382,7 @@ void AutoYUY2::Convert_Progressive_YUY2_SSE(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Interlaced_YUY2(int8_t thread_num)
+void AutoYUY2::Convert_Interlaced_YUY2(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -2633,7 +2633,7 @@ void AutoYUY2::Convert_Interlaced_YUY2(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Interlaced_YUY2_SSE(int8_t thread_num)
+void AutoYUY2::Convert_Interlaced_YUY2_SSE(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -2795,7 +2795,7 @@ void AutoYUY2::Convert_Interlaced_YUY2_SSE(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Automatic_YUY2(int8_t thread_num)
+void AutoYUY2::Convert_Automatic_YUY2(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -3284,7 +3284,7 @@ void AutoYUY2::Convert_Automatic_YUY2(int8_t thread_num)
 
 
 
-void AutoYUY2::Convert_Test_YUY2(int8_t thread_num)
+void AutoYUY2::Convert_Test_YUY2(uint8_t thread_num)
 {
 	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
 
@@ -4000,6 +4000,7 @@ const AVS_Linkage *AVS_linkage = nullptr;
 */
 AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironment* env)
 {
+	char buffer_in[1024];
 
 	if (!args[0].IsClip()) env->ThrowError("AutoYUY2 : arg 0 must be a clip !");
 
@@ -4007,10 +4008,10 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 	if (!vi.IsYV12())
 		env->ThrowError("AutoYUY2 : Input format must be YV12 or I420");
-	if (vi.width & 2)
+	if ((vi.width & 1)!=0)
 		env->ThrowError("AutoYUY2 : Input width must be a multiple of 2.");
-	if (vi.height & 2)
-		env->ThrowError("AutoYUY2 : Input height must be a multiple of 2.");
+	if ((vi.height & 3)!=0)
+		env->ThrowError("AutoYUY2 : Input height must be a multiple of 4.");
 	if (vi.height < 8)
 		env->ThrowError("AutoYUY2 : Input height must be at least 8.");
 
@@ -4018,7 +4019,6 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int mode=args[2].AsInt(-1);
 	const int output=args[3].AsInt(1);
 	const int threads=args[4].AsInt(0);
-	char buffer_in[1024];
 
 	if ((mode<-1) || (mode>2))
 		env->ThrowError("AutoYUY2 : [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
