@@ -119,6 +119,8 @@ public:
 	~AutoYUY2();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 
+	int __stdcall SetCacheHints(int cachehints, int frame_range);
+
 private:
 	typedef struct _YUYV
 	{
@@ -169,6 +171,19 @@ private:
 };
 
 
+
+int __stdcall AutoYUY2::SetCacheHints(int cachehints,int frame_range)
+{
+  switch (cachehints)
+  {
+  case CACHE_DONT_CACHE_ME:
+    return 1;
+  case CACHE_GET_MTMODE:
+    return MT_MULTI_INSTANCE;
+  default:
+    return 0;
+  }
+}
 
 uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y)
 {
@@ -4005,13 +4020,6 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 	AVS_linkage = vectors;
 
     env->AddFunction("AutoYUY2", "c[threshold]i[mode]i[output]i[threads]i", Create_AutoYUY2, 0);
-
-	if (env->FunctionExists("SetFilterMTMode"))
-	{
-		auto env2 = static_cast<IScriptEnvironment2*>(env);
-
-		env2->SetFilterMTMode("AutoYUY2",MT_MULTI_INSTANCE,true);
-	}
 
     return "AutoYUY2 Pluggin";
 }
