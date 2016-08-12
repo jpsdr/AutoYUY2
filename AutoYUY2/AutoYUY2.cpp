@@ -64,7 +64,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 3.0.2 JPSDR"
+#define VERSION "AutoYUY2 3.0.3 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -328,7 +328,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	else def_affinity=false;
 
 	ghMutex=CreateMutex(NULL,FALSE,NULL);
-	if (ghMutex==NULL) env->ThrowError("Unable to create Mutex !");
+	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex !");
 
 	if (threads_number>1)
 	{
@@ -346,7 +346,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		if (!ok)
 		{
 			FreeData();
-			env->ThrowError("Unable to create events !");
+			env->ThrowError("AutoYUY2: Unable to create events !");
 		}
 
 		DWORD_PTR dwpProcessAffinityMask;
@@ -384,7 +384,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		if (!ok)
 		{
 			FreeData();
-			env->ThrowError("Unable to create threads pool !");
+			env->ThrowError("AutoYUY2: Unable to create threads pool !");
 		}
 	}
 
@@ -412,7 +412,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		if (!ok)
 		{
 			FreeData();
-			env->ThrowError("AutoYUY2 : Memory allocation error.");
+			env->ThrowError("AutoYUY2: Memory allocation error.");
 		}
 	}
 
@@ -3981,18 +3981,18 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 {
 	char buffer_in[1024];
 
-	if (!args[0].IsClip()) env->ThrowError("AutoYUY2 : arg 0 must be a clip !");
+	if (!args[0].IsClip()) env->ThrowError("AutoYUY2: arg 0 must be a clip !");
 
 	VideoInfo vi = args[0].AsClip()->GetVideoInfo();
 
 	if (!vi.IsYV12())
-		env->ThrowError("AutoYUY2 : Input format must be YV12 or I420");
+		env->ThrowError("AutoYUY2: Input format must be YV12 or I420");
 	if ((vi.width & 1)!=0)
-		env->ThrowError("AutoYUY2 : Input width must be a multiple of 2.");
+		env->ThrowError("AutoYUY2: Input width must be a multiple of 2.");
 	if ((vi.height & 3)!=0)
-		env->ThrowError("AutoYUY2 : Input height must be a multiple of 4.");
+		env->ThrowError("AutoYUY2: Input height must be a multiple of 4.");
 	if (vi.height < 8)
-		env->ThrowError("AutoYUY2 : Input height must be at least 8.");
+		env->ThrowError("AutoYUY2: Input height must be at least 8.");
 
 	const int thrs=args[1].AsInt(4);
 	const int mode=args[2].AsInt(-1);
@@ -4000,12 +4000,12 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int threads=args[4].AsInt(0);
 
 	if ((mode<-1) || (mode>2))
-		env->ThrowError("AutoYUY2 : [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
+		env->ThrowError("AutoYUY2: [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
 	if ((output<0) || (output>1))
-		env->ThrowError("AutoYUY2 : [output] must be 0 (YUY2) or 1 (YV16)");
+		env->ThrowError("AutoYUY2: [output] must be 0 (YUY2) or 1 (YV16)");
 	if ((threads<0) || (threads>MAX_MT_THREADS))
 	{
-		sprintf_s(buffer_in,1024,"AutoYUY2 : [threads] must be between 0 and %ld.",MAX_MT_THREADS);
+		sprintf_s(buffer_in,1024,"AutoYUY2: [threads] must be between 0 and %ld.",MAX_MT_THREADS);
 		env->ThrowError(buffer_in);
 	}
 
