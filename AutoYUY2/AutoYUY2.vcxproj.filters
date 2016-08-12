@@ -34,4 +34,9 @@
       <Filter>Fichiers sources</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="AutoYUY2.rc">
+      <Filter>Fichiers de ressources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
 </Project>
