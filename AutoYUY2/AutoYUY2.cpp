@@ -64,7 +64,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 3.0.3 JPSDR"
+#define VERSION "AutoYUY2 3.0.4 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -72,6 +72,13 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1
 
 #define myfree(ptr) if (ptr!=NULL) { free(ptr); ptr=NULL;}
 #define myCloseHandle(ptr) if (ptr!=NULL) { CloseHandle(ptr); ptr=NULL;}
+
+typedef struct _Arch_CPU
+{
+	uint8_t NbPhysCore,NbLogicCPU;
+	uint8_t NbHT[64];
+	ULONG_PTR ProcMask[64];
+} Arch_CPU;
 
 
 typedef struct _MT_Data_Info
@@ -96,18 +103,122 @@ typedef struct _MT_Data_Thread
 } MT_Data_Thread;
 
 
-static int num_processors()
+// Helper function to count set bits in the processor mask.
+static uint8_t CountSetBits(ULONG_PTR bitMask)
 {
-#ifdef _DEBUG
-	return 1;
-#else
-	int pcount = 0;
-	ULONG_PTR p_aff=0, s_aff=0;
-	GetProcessAffinityMask(GetCurrentProcess(), &p_aff, &s_aff);
-	for(; p_aff != 0; p_aff>>=1) 
-		pcount += (p_aff&1);
-	return pcount;
-#endif
+    DWORD LSHIFT = sizeof(ULONG_PTR)*8 - 1;
+    uint8_t bitSetCount = 0;
+    ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;    
+    DWORD i;
+    
+    for (i = 0; i <= LSHIFT; ++i)
+    {
+        bitSetCount += ((bitMask & bitTest)?1:0);
+        bitTest/=2;
+    }
+
+    return bitSetCount;
+}
+
+
+static void Get_CPU_Info(Arch_CPU& cpu)
+{
+    bool done = false;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer=NULL;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr=NULL;
+    DWORD returnLength=0;
+    uint8_t logicalProcessorCount=0;
+    uint8_t processorCoreCount=0;
+    DWORD byteOffset=0;
+
+	cpu.NbLogicCPU=0;
+	cpu.NbPhysCore=0;
+
+    while (!done)
+    {
+        BOOL rc=GetLogicalProcessorInformation(buffer, &returnLength);
+
+        if (rc==FALSE) 
+        {
+            if (GetLastError()==ERROR_INSUFFICIENT_BUFFER) 
+            {
+                myfree(buffer);
+                buffer=(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(returnLength);
+
+                if (buffer==NULL) return;
+            } 
+            else
+			{
+				myfree(buffer);
+				return;
+			}
+        } 
+        else done=true;
+    }
+
+    ptr=buffer;
+
+    while ((byteOffset+sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION))<=returnLength) 
+    {
+        switch (ptr->Relationship) 
+        {
+			case RelationProcessorCore :
+	            // A hyperthreaded core supplies more than one logical processor.
+				cpu.NbHT[processorCoreCount]=CountSetBits(ptr->ProcessorMask);
+		        logicalProcessorCount+=cpu.NbHT[processorCoreCount];
+				cpu.ProcMask[processorCoreCount++]=ptr->ProcessorMask;
+			    break;
+			default : break;
+        }
+        byteOffset+=sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+        ptr++;
+    }
+	free(buffer);
+
+	cpu.NbPhysCore=processorCoreCount;
+	cpu.NbLogicCPU=logicalProcessorCount;
+}
+
+
+static ULONG_PTR GetCPUMask(ULONG_PTR bitMask, uint8_t CPU_Nb)
+{
+    uint8_t LSHIFT=sizeof(ULONG_PTR)*8-1;
+    uint8_t i=0,bitSetCount=0;
+    ULONG_PTR bitTest=1;    
+
+	CPU_Nb++;
+	while (i<=LSHIFT)
+	{
+		if ((bitMask & bitTest)!=0) bitSetCount++;
+		if (bitSetCount==CPU_Nb) return(bitTest);
+		else
+		{
+			i++;
+			bitTest<<=1;
+		}
+	}
+	return(0);
+}
+
+
+static void CreateThreadsMasks(Arch_CPU cpu, ULONG_PTR *TabMask,uint8_t NbThread)
+{
+	memset(TabMask,0,NbThread*sizeof(ULONG_PTR));
+
+	if ((cpu.NbLogicCPU==0) || (cpu.NbPhysCore==0)) return;
+
+	uint8_t current_thread=0;
+
+	for(uint8_t i=0; i<cpu.NbPhysCore; i++)
+	{
+		uint8_t Nb_Core_Th=NbThread/cpu.NbPhysCore+( ((NbThread%cpu.NbPhysCore)>i) ? 1:0 );
+
+		if (Nb_Core_Th>0)
+		{
+			for(uint8_t j=0; j<Nb_Core_Th; j++)
+				TabMask[current_thread++]=GetCPUMask(cpu.ProcMask[i],j%cpu.NbHT[i]);
+		}
+	}
 }
 
 
@@ -143,7 +254,9 @@ private:
 	MT_Data_Thread MT_Thread[MAX_MT_THREADS];
 	MT_Data_Info MT_Data[MAX_MT_THREADS];
 	DWORD tids[MAX_MT_THREADS];
-	uint8_t CPUs_number,threads_number;
+	Arch_CPU CPU;
+	ULONG_PTR ThreadMask[MAX_MT_THREADS];
+	uint8_t threads_number;
 	HANDLE ghMutex;
 	
 	static DWORD WINAPI StaticThreadpool( LPVOID lpParam );
@@ -290,7 +403,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 										GenericVideoFilter(_child), threshold(_threshold),
 										mode(_mode), output(_output), threads(_threads)
 {
-	bool ok,def_affinity;
+	bool ok;
 	int16_t i,j;
 
 	for (j=0; j<MAX_MT_THREADS; j++)
@@ -313,19 +426,20 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	}
 	ghMutex=NULL;
 
-	CPUs_number=(uint8_t)num_processors();
-	if (CPUs_number>MAX_MT_THREADS) CPUs_number=MAX_MT_THREADS;
-
+	Get_CPU_Info(CPU);
+	if ((CPU.NbLogicCPU==0) || (CPU.NbPhysCore==0))
+		env->ThrowError("AutoYUY2: Error getting system CPU information !");
+	
 	if (vi.height>=32)
 	{
-		if (threads==0) threads_number=CPUs_number;
+		if (threads==0) threads_number=((CPU.NbLogicCPU>MAX_MT_THREADS) ? MAX_MT_THREADS:CPU.NbLogicCPU);
 		else threads_number=(uint8_t)threads;
 	}
 	else threads_number=1;
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
-	if (threads_number<=CPUs_number) def_affinity=true;
-	else def_affinity=false;
+
+	CreateThreadsMasks(CPU,ThreadMask,threads_number);
 
 	ghMutex=CreateMutex(NULL,FALSE,NULL);
 	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex !");
@@ -349,37 +463,15 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 			env->ThrowError("AutoYUY2: Unable to create events !");
 		}
 
-		DWORD_PTR dwpProcessAffinityMask;
-		DWORD_PTR dwpSystemAffinityMask;
-		DWORD_PTR dwpThreadAffinityMask=1;
-
-		GetProcessAffinityMask(GetCurrentProcess(), &dwpProcessAffinityMask, &dwpSystemAffinityMask);
 
 		ok=true;
 		i=0;
 		while ((i<threads_number) && ok)
 		{
-			if (def_affinity)
-			{
-				if ((dwpProcessAffinityMask & dwpThreadAffinityMask)!=0)
-				{
-					thds[i]=CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StaticThreadpool,&MT_Thread[i],CREATE_SUSPENDED,&tids[i]);
-					ok=ok && (thds[i]!=NULL);
-					if (ok)
-					{
-						SetThreadAffinityMask(thds[i],dwpThreadAffinityMask);
-						ResumeThread(thds[i]);
-					}
-					i++;
-				}
-				dwpThreadAffinityMask<<=1;
-			}
-			else
-			{
-				thds[i]=CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StaticThreadpool,&MT_Thread[i],0,&tids[i]);
-				ok=ok && (thds[i]!=NULL);
-				i++;
-			}
+			thds[i]=CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StaticThreadpool,&MT_Thread[i],CREATE_SUSPENDED,&tids[i]);
+			ok=ok && (thds[i]!=NULL);
+			if (ok) SetThreadAffinityMask(thds[i],ThreadMask[i]);
+			i++;
 		}
 		if (!ok)
 		{
@@ -463,6 +555,7 @@ void AutoYUY2::FreeData(void)
 		{
 			if (thds[i]!=NULL)
 			{
+				ResumeThread(thds[i]);
 				MT_Thread[i].f_process=255;
 				SetEvent(MT_Thread[i].nextJob);
 				WaitForSingleObject(thds[i],INFINITE);
@@ -3942,6 +4035,9 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	if (threads_number>1)
 	{
 		for(uint8_t i=0; i<threads_number; i++)
+			ResumeThread(thds[i]);
+
+		for(uint8_t i=0; i<threads_number; i++)
 		{
 			MT_Thread[i].f_process=f_proc;
 			ResetEvent(MT_Thread[i].jobFinished);
@@ -3951,6 +4047,9 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			WaitForSingleObject(MT_Thread[i].jobFinished,INFINITE);
 		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=0;
+
+		for(uint8_t i=0; i<threads_number; i++)
+			SuspendThread(thds[i]);
 	}
 
 	ReleaseMutex(ghMutex);
