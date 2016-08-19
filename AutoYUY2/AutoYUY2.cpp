@@ -470,7 +470,11 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		{
 			thds[i]=CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StaticThreadpool,&MT_Thread[i],CREATE_SUSPENDED,&tids[i]);
 			ok=ok && (thds[i]!=NULL);
-			if (ok) SetThreadAffinityMask(thds[i],ThreadMask[i]);
+			if (ok)
+			{
+				SetThreadAffinityMask(thds[i],ThreadMask[i]);
+				ResumeThread(thds[i]);
+			}
 			i++;
 		}
 		if (!ok)
@@ -555,7 +559,6 @@ void AutoYUY2::FreeData(void)
 		{
 			if (thds[i]!=NULL)
 			{
-				ResumeThread(thds[i]);
 				MT_Thread[i].f_process=255;
 				SetEvent(MT_Thread[i].nextJob);
 				WaitForSingleObject(thds[i],INFINITE);
@@ -4035,9 +4038,6 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	if (threads_number>1)
 	{
 		for(uint8_t i=0; i<threads_number; i++)
-			ResumeThread(thds[i]);
-
-		for(uint8_t i=0; i<threads_number; i++)
 		{
 			MT_Thread[i].f_process=f_proc;
 			ResetEvent(MT_Thread[i].jobFinished);
@@ -4047,9 +4047,6 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			WaitForSingleObject(MT_Thread[i].jobFinished,INFINITE);
 		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=0;
-
-		for(uint8_t i=0; i<threads_number; i++)
-			SuspendThread(thds[i]);
 	}
 
 	ReleaseMutex(ghMutex);
