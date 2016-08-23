@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include "avisynth.h"
 #include ".\asmlib\asmlib.h"
+#include "ThreadPool.h"
+
 
 extern "C" int IInstrSet;
 // Cache size for asmlib function, a little more the size of a 720p YV12 frame
@@ -64,21 +66,13 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 3.0.4 JPSDR"
+#define VERSION "AutoYUY2 3.1.0 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
-#define MAX_MT_THREADS 128
 
 #define myfree(ptr) if (ptr!=NULL) { free(ptr); ptr=NULL;}
 #define myCloseHandle(ptr) if (ptr!=NULL) { CloseHandle(ptr); ptr=NULL;}
-
-typedef struct _Arch_CPU
-{
-	uint8_t NbPhysCore,NbLogicCPU;
-	uint8_t NbHT[64];
-	ULONG_PTR ProcMask[64];
-} Arch_CPU;
 
 
 typedef struct _MT_Data_Info
@@ -93,133 +87,6 @@ typedef struct _MT_Data_Info
 	int32_t dst_UV_h_min,dst_UV_h_max,dst_UV_w;
 	bool top,bottom;
 } MT_Data_Info;
-
-
-typedef struct _MT_Data_Thread
-{
-	void *pClass;
-	uint8_t f_process,thread_Id;
-	HANDLE nextJob, jobFinished;
-} MT_Data_Thread;
-
-
-// Helper function to count set bits in the processor mask.
-static uint8_t CountSetBits(ULONG_PTR bitMask)
-{
-    DWORD LSHIFT = sizeof(ULONG_PTR)*8 - 1;
-    uint8_t bitSetCount = 0;
-    ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;    
-    DWORD i;
-    
-    for (i = 0; i <= LSHIFT; ++i)
-    {
-        bitSetCount += ((bitMask & bitTest)?1:0);
-        bitTest/=2;
-    }
-
-    return bitSetCount;
-}
-
-
-static void Get_CPU_Info(Arch_CPU& cpu)
-{
-    bool done = false;
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer=NULL;
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr=NULL;
-    DWORD returnLength=0;
-    uint8_t logicalProcessorCount=0;
-    uint8_t processorCoreCount=0;
-    DWORD byteOffset=0;
-
-	cpu.NbLogicCPU=0;
-	cpu.NbPhysCore=0;
-
-    while (!done)
-    {
-        BOOL rc=GetLogicalProcessorInformation(buffer, &returnLength);
-
-        if (rc==FALSE) 
-        {
-            if (GetLastError()==ERROR_INSUFFICIENT_BUFFER) 
-            {
-                myfree(buffer);
-                buffer=(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(returnLength);
-
-                if (buffer==NULL) return;
-            } 
-            else
-			{
-				myfree(buffer);
-				return;
-			}
-        } 
-        else done=true;
-    }
-
-    ptr=buffer;
-
-    while ((byteOffset+sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION))<=returnLength) 
-    {
-        switch (ptr->Relationship) 
-        {
-			case RelationProcessorCore :
-	            // A hyperthreaded core supplies more than one logical processor.
-				cpu.NbHT[processorCoreCount]=CountSetBits(ptr->ProcessorMask);
-		        logicalProcessorCount+=cpu.NbHT[processorCoreCount];
-				cpu.ProcMask[processorCoreCount++]=ptr->ProcessorMask;
-			    break;
-			default : break;
-        }
-        byteOffset+=sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-        ptr++;
-    }
-	free(buffer);
-
-	cpu.NbPhysCore=processorCoreCount;
-	cpu.NbLogicCPU=logicalProcessorCount;
-}
-
-
-static ULONG_PTR GetCPUMask(ULONG_PTR bitMask, uint8_t CPU_Nb)
-{
-    uint8_t LSHIFT=sizeof(ULONG_PTR)*8-1;
-    uint8_t i=0,bitSetCount=0;
-    ULONG_PTR bitTest=1;    
-
-	CPU_Nb++;
-	while (i<=LSHIFT)
-	{
-		if ((bitMask & bitTest)!=0) bitSetCount++;
-		if (bitSetCount==CPU_Nb) return(bitTest);
-		else
-		{
-			i++;
-			bitTest<<=1;
-		}
-	}
-	return(0);
-}
-
-
-static void CreateThreadsMasks(Arch_CPU cpu, ULONG_PTR *TabMask,uint8_t NbThread)
-{
-	memset(TabMask,0,NbThread*sizeof(ULONG_PTR));
-
-	if ((cpu.NbLogicCPU==0) || (cpu.NbPhysCore==0)) return;
-
-	uint8_t current_thread=0;
-
-	for(uint8_t i=0; i<cpu.NbPhysCore; i++)
-	{
-		uint8_t Nb_Core_Th=NbThread/cpu.NbPhysCore+( ((NbThread%cpu.NbPhysCore)>i) ? 1:0 );
-
-		if (Nb_Core_Th>0)
-		{
-			for(uint8_t j=0; j<Nb_Core_Th; j++)
-				TabMask[current_thread++]=GetCPUMask(cpu.ProcMask[i],j%cpu.NbHT[i]);
-		}
-	}
-}
 
 
 
@@ -250,16 +117,17 @@ private:
 	bool SSE2_Enable;
 	size_t Cache_Setting;
 
-	HANDLE thds[MAX_MT_THREADS];
-	MT_Data_Thread MT_Thread[MAX_MT_THREADS];
+	Public_MT_Data_Thread MT_Thread[MAX_MT_THREADS];
 	MT_Data_Info MT_Data[MAX_MT_THREADS];
-	DWORD tids[MAX_MT_THREADS];
-	Arch_CPU CPU;
-	ULONG_PTR ThreadMask[MAX_MT_THREADS];
 	uint8_t threads_number;
-	HANDLE ghMutex;
+	CRITICAL_SECTION CriticalSection;
+	BOOL CSectionOk;
+	DWORD ProcId;
 	
-	static DWORD WINAPI StaticThreadpool( LPVOID lpParam );
+	ThreadPool& local_pool;
+	ThreadPoolFunction StaticThreadpoolF;
+
+	static void StaticThreadpool(void *ptr);
 
 	uint8_t CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y);
 
@@ -401,7 +269,7 @@ uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y
 
 AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads, IScriptEnvironment* env) :
 										GenericVideoFilter(_child), threshold(_threshold),
-										mode(_mode), output(_output), threads(_threads)
+										mode(_mode), output(_output), threads(_threads), local_pool(ThreadPool::Init(0))
 {
 	bool ok;
 	int16_t i,j;
@@ -414,75 +282,34 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 			interlaced_tab_V[j][i]=NULL;
 		}
 	}
+	CSectionOk=FALSE;
+
+	StaticThreadpoolF=StaticThreadpool;
 
 	for (i=0; i<MAX_MT_THREADS; i++)
 	{
-		MT_Thread[i].pClass=NULL;
+		MT_Thread[i].pClass=this;
 		MT_Thread[i].f_process=0;
 		MT_Thread[i].thread_Id=(uint8_t)i;
-		MT_Thread[i].jobFinished=NULL;
-		MT_Thread[i].nextJob=NULL;
-		thds[i]=NULL;
+		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
-	ghMutex=NULL;
 
-	Get_CPU_Info(CPU);
-	if ((CPU.NbLogicCPU==0) || (CPU.NbPhysCore==0))
-		env->ThrowError("AutoYUY2: Error getting system CPU information !");
-	
+	ProcId=GetCurrentProcessId();
+
+	if (!local_pool.GetThreadPoolStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status !");
+
 	if (vi.height>=32)
 	{
-		if (threads==0) threads_number=((CPU.NbLogicCPU>MAX_MT_THREADS) ? MAX_MT_THREADS:CPU.NbLogicCPU);
-		else threads_number=(uint8_t)threads;
+		threads_number=local_pool.GetThreadNumber(threads,true);
+		if (threads_number==0)
+			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info !");
 	}
 	else threads_number=1;
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
 
-	CreateThreadsMasks(CPU,ThreadMask,threads_number);
-
-	ghMutex=CreateMutex(NULL,FALSE,NULL);
-	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex !");
-
-	if (threads_number>1)
-	{
-		ok=true;
-		i=0;
-		while ((i<threads_number) && ok)
-		{
-			MT_Thread[i].pClass=this;
-			MT_Thread[i].f_process=0;
-			MT_Thread[i].jobFinished=CreateEvent(NULL,TRUE,TRUE,NULL);
-			MT_Thread[i].nextJob=CreateEvent(NULL,TRUE,FALSE,NULL);
-			ok=ok && ((MT_Thread[i].jobFinished!=NULL) && (MT_Thread[i].nextJob!=NULL));
-			i++;
-		}
-		if (!ok)
-		{
-			FreeData();
-			env->ThrowError("AutoYUY2: Unable to create events !");
-		}
-
-
-		ok=true;
-		i=0;
-		while ((i<threads_number) && ok)
-		{
-			thds[i]=CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StaticThreadpool,&MT_Thread[i],CREATE_SUSPENDED,&tids[i]);
-			ok=ok && (thds[i]!=NULL);
-			if (ok)
-			{
-				SetThreadAffinityMask(thds[i],ThreadMask[i]);
-				ResumeThread(thds[i]);
-			}
-			i++;
-		}
-		if (!ok)
-		{
-			FreeData();
-			env->ThrowError("AutoYUY2: Unable to create threads pool !");
-		}
-	}
+	CSectionOk=InitializeCriticalSectionAndSpinCount(&CriticalSection,0x00000040);
+	if (CSectionOk==FALSE) env->ThrowError("AutoYUY2: Unable to create Critical Section !");
 
 	if ((mode==-1) || (mode==2))
 	{
@@ -537,6 +364,11 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	}
 	else Cache_Setting=16;
 
+	if (!local_pool.AllocateThreads(ProcId,threads_number,0))
+	{
+		FreeData();
+		env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
+	}
 }
 
 
@@ -553,30 +385,13 @@ void AutoYUY2::FreeData(void)
 		}
 	}
 
-	if (threads_number>1)
-	{
-		for (i=threads_number-1; i>=0; i--)
-		{
-			if (thds[i]!=NULL)
-			{
-				MT_Thread[i].f_process=255;
-				SetEvent(MT_Thread[i].nextJob);
-				WaitForSingleObject(thds[i],INFINITE);
-				myCloseHandle(thds[i]);
-			}
-		}
-		for (i=threads_number-1; i>=0; i--)
-		{
-			myCloseHandle(MT_Thread[i].nextJob);
-			myCloseHandle(MT_Thread[i].jobFinished);
-		}
-	}
-	myCloseHandle(ghMutex);
+	if (CSectionOk==TRUE) DeleteCriticalSection(&CriticalSection);
 }
 
 
 AutoYUY2::~AutoYUY2() 
 {
+	local_pool.DeAllocateThreads(ProcId);
 	FreeData();
 }
 
@@ -3848,45 +3663,38 @@ void AutoYUY2::Convert_Test_YUY2(uint8_t thread_num)
 
 
 
-DWORD WINAPI AutoYUY2::StaticThreadpool( LPVOID lpParam )
+void AutoYUY2::StaticThreadpool(void *ptr)
 {
-	const MT_Data_Thread *data=(const MT_Data_Thread *)lpParam;
+	const Public_MT_Data_Thread *data=(const Public_MT_Data_Thread *)ptr;
 	AutoYUY2 *ptrClass=(AutoYUY2 *)data->pClass;
 	
-	while (true)
+	switch(data->f_process)
 	{
-		WaitForSingleObject(data->nextJob,INFINITE);
-		switch(data->f_process)
-		{
-			case 1 : ptrClass->Convert_Progressive_YUY2(data->thread_Id);
-				break;
-			case 2 : ptrClass->Convert_Progressive_YUY2_SSE(data->thread_Id);
-				break;
-			case 3 : ptrClass->Convert_Interlaced_YUY2(data->thread_Id);
-				break;
-			case 4 : ptrClass->Convert_Interlaced_YUY2_SSE(data->thread_Id);
-				break;
-			case 5 : ptrClass->Convert_Automatic_YUY2(data->thread_Id);
-				break;
-			case 6 : ptrClass->Convert_Test_YUY2(data->thread_Id);
-				break;
-			case 7 : ptrClass->Convert_Progressive_YV16(data->thread_Id);
-				break;
-			case 8 : ptrClass->Convert_Progressive_YV16_SSE(data->thread_Id);
-				break;
-			case 9 : ptrClass->Convert_Interlaced_YV16(data->thread_Id);
-				break;
-			case 10 : ptrClass->Convert_Interlaced_YV16_SSE(data->thread_Id);
-				break;
-			case 11 : ptrClass->Convert_Automatic_YV16(data->thread_Id);
-				break;
-			case 12 : ptrClass->Convert_Test_YV16(data->thread_Id);
-				break;
-			case 255 : return(0); break;
-			default : ;
-		}
-		ResetEvent(data->nextJob);
-		SetEvent(data->jobFinished);
+		case 1 : ptrClass->Convert_Progressive_YUY2(data->thread_Id);
+			break;
+		case 2 : ptrClass->Convert_Progressive_YUY2_SSE(data->thread_Id);
+			break;
+		case 3 : ptrClass->Convert_Interlaced_YUY2(data->thread_Id);
+			break;
+		case 4 : ptrClass->Convert_Interlaced_YUY2_SSE(data->thread_Id);
+			break;
+		case 5 : ptrClass->Convert_Automatic_YUY2(data->thread_Id);
+			break;
+		case 6 : ptrClass->Convert_Test_YUY2(data->thread_Id);
+			break;
+		case 7 : ptrClass->Convert_Progressive_YV16(data->thread_Id);
+			break;
+		case 8 : ptrClass->Convert_Progressive_YV16_SSE(data->thread_Id);
+			break;
+		case 9 : ptrClass->Convert_Interlaced_YV16(data->thread_Id);
+			break;
+		case 10 : ptrClass->Convert_Interlaced_YV16_SSE(data->thread_Id);
+			break;
+		case 11 : ptrClass->Convert_Automatic_YV16(data->thread_Id);
+			break;
+		case 12 : ptrClass->Convert_Test_YV16(data->thread_Id);
+			break;
+		default : ;
 	}
 }
 
@@ -3907,7 +3715,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	SetMemcpyCacheLimit(Cache_Setting);
 	SetMemsetCacheLimit(Cache_Setting);
 
-	WaitForSingleObject(ghMutex,INFINITE);
+	EnterCriticalSection(&CriticalSection);
 
 	switch(output)
 	{
@@ -3938,7 +3746,14 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	src_pitchU = src->GetPitch(PLANAR_U);
 	src_pitchV = src->GetPitch(PLANAR_V);
 
-	for(uint8_t i=0; i<threads_number; i++)
+	uint8_t Current_Threads=threads_number;
+
+	if (threads_number>1)
+	{
+		if (!local_pool.RequestThreadPool(ProcId,threads_number,MT_Thread)) Current_Threads=1;
+	}
+
+	for(uint8_t i=0; i<Current_Threads; i++)
 	{
 		MT_Data[i].src1=(void *)(srcYp+(MT_Data[i].src_Y_h_min*src_pitch_Y));
 		MT_Data[i].src2=(void *)(srcUp+(MT_Data[i].src_UV_h_min*src_pitchU));
@@ -3960,35 +3775,35 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			switch(mode)
 			{
 				case -1 :
-					if (threads_number>1) f_proc=5;
+					if (Current_Threads>1) f_proc=5;
 					else Convert_Automatic_YUY2(0);
 					break;
 				case 0 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (threads_number>1) f_proc=2;
+						if (Current_Threads>1) f_proc=2;
 						else Convert_Progressive_YUY2_SSE(0);
 					}
 					else
 					{
-						if (threads_number>1) f_proc=1;
+						if (Current_Threads>1) f_proc=1;
 						else Convert_Progressive_YUY2(0);
 					}
 					break;
 				case 1 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (threads_number>1) f_proc=4;
+						if (Current_Threads>1) f_proc=4;
 						else Convert_Interlaced_YUY2_SSE(0);
 					}
 					else
 					{
-						if (threads_number>1) f_proc=3;
+						if (Current_Threads>1) f_proc=3;
 						else Convert_Interlaced_YUY2(0);
 					}
 					break;
 				case 2 : 
-					if (threads_number>1) f_proc=6;
+					if (Current_Threads>1) f_proc=6;
 					else Convert_Test_YUY2(0);
 					break;
 				default : f_proc=0; break;
@@ -3998,35 +3813,35 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			switch(mode)
 			{
 				case -1 : 
-					if (threads_number>1) f_proc=11;
+					if (Current_Threads>1) f_proc=11;
 					else Convert_Automatic_YV16(0);
 					break;
 				case 0 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (threads_number>1) f_proc=8;
+						if (Current_Threads>1) f_proc=8;
 						else Convert_Progressive_YV16_SSE(0);
 					}
 					else
 					{
-						if (threads_number>1) f_proc=7;
+						if (Current_Threads>1) f_proc=7;
 						else Convert_Progressive_YV16(0);
 					}
 					break;
 				case 1 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (threads_number>1) f_proc=10;
+						if (Current_Threads>1) f_proc=10;
 						else Convert_Interlaced_YV16_SSE(0);
 					}
 					else
 					{
-						if (threads_number>1) f_proc=9;
+						if (Current_Threads>1) f_proc=9;
 						else Convert_Interlaced_YV16(0);
 					}
 					break;
 				case 2 : 
-					if (threads_number>1) f_proc=12;
+					if (Current_Threads>1) f_proc=12;
 					else Convert_Test_YV16(0);
 					break;
 				default : f_proc=0; break;
@@ -4035,21 +3850,20 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 		default : f_proc=0; break;
 	}
 
-	if (threads_number>1)
+	if (Current_Threads>1)
 	{
-		for(uint8_t i=0; i<threads_number; i++)
-		{
+		for(uint8_t i=0; i<Current_Threads; i++)
 			MT_Thread[i].f_process=f_proc;
-			ResetEvent(MT_Thread[i].jobFinished);
-			SetEvent(MT_Thread[i].nextJob);
-		}
-		for(uint8_t i=0; i<threads_number; i++)
-			WaitForSingleObject(MT_Thread[i].jobFinished,INFINITE);
-		for(uint8_t i=0; i<threads_number; i++)
+		local_pool.StartThreads(ProcId);
+		local_pool.WaitThreadsEnd(ProcId);
+
+		for(uint8_t i=0; i<Current_Threads; i++)
 			MT_Thread[i].f_process=0;
+
+		local_pool.ReleaseThreadPool(ProcId);
 	}
 
-	ReleaseMutex(ghMutex);
+	LeaveCriticalSection(&CriticalSection);
 
 	return dst;
 }
