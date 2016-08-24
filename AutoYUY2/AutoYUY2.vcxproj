@@ -1410,10 +1410,13 @@
   <ItemGroup>
     <ClCompile Include="AutoYUY2.cpp" />
     <ClCompile Include="ThreadPool.cpp" />
+    <ClCompile Include="ThreadPoolInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="avisynth.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="ThreadPoolDef.h" />
+    <ClInclude Include="ThreadPoolInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="AutoYUY2_asm.asm">

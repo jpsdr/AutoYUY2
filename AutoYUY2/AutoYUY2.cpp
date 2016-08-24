@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include "avisynth.h"
 #include ".\asmlib\asmlib.h"
-#include "ThreadPool.h"
+#include "ThreadPoolInterface.h"
 
 
 extern "C" int IInstrSet;
@@ -122,9 +122,9 @@ private:
 	uint8_t threads_number;
 	CRITICAL_SECTION CriticalSection;
 	BOOL CSectionOk;
-	DWORD ProcId;
+	uint16_t UserId;
 	
-	ThreadPool& local_pool;
+	ThreadPoolInterface& poolInterface;
 	ThreadPoolFunction StaticThreadpoolF;
 
 	static void StaticThreadpool(void *ptr);
@@ -269,7 +269,7 @@ uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y
 
 AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads, IScriptEnvironment* env) :
 										GenericVideoFilter(_child), threshold(_threshold),
-										mode(_mode), output(_output), threads(_threads), local_pool(ThreadPool::Init(0))
+										mode(_mode), output(_output), threads(_threads), poolInterface(ThreadPoolInterface::Init(1))
 {
 	bool ok;
 	int16_t i,j;
@@ -283,6 +283,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		}
 	}
 	CSectionOk=FALSE;
+	UserId=0;
 
 	StaticThreadpoolF=StaticThreadpool;
 
@@ -294,13 +295,11 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
 
-	ProcId=GetCurrentProcessId();
-
-	if (!local_pool.GetThreadPoolStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status !");
+	if (!poolInterface.GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status !");
 
 	if (vi.height>=32)
 	{
-		threads_number=local_pool.GetThreadNumber(threads,true);
+		threads_number=poolInterface.GetThreadNumber(threads,false);
 		if (threads_number==0)
 			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info !");
 	}
@@ -364,7 +363,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	}
 	else Cache_Setting=16;
 
-	if (!local_pool.AllocateThreads(ProcId,threads_number,0))
+	if (!poolInterface.AllocateThreads(UserId,threads_number,0,0))
 	{
 		FreeData();
 		env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
@@ -391,7 +390,7 @@ void AutoYUY2::FreeData(void)
 
 AutoYUY2::~AutoYUY2() 
 {
-	local_pool.DeAllocateThreads(ProcId);
+	poolInterface.DeAllocateThreads(UserId);
 	FreeData();
 }
 
@@ -3746,14 +3745,16 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	src_pitchU = src->GetPitch(PLANAR_U);
 	src_pitchV = src->GetPitch(PLANAR_V);
 
-	uint8_t Current_Threads=threads_number;
-
 	if (threads_number>1)
 	{
-		if (!local_pool.RequestThreadPool(ProcId,threads_number,MT_Thread)) Current_Threads=1;
+		if (!poolInterface.RequestThreadPool(UserId,threads_number,MT_Thread,0))
+		{
+			FreeData();
+			env->ThrowError("AutoYUY2: Error with the TheadPool while requesting threadpool !");
+		}
 	}
 
-	for(uint8_t i=0; i<Current_Threads; i++)
+	for(uint8_t i=0; i<threads_number; i++)
 	{
 		MT_Data[i].src1=(void *)(srcYp+(MT_Data[i].src_Y_h_min*src_pitch_Y));
 		MT_Data[i].src2=(void *)(srcUp+(MT_Data[i].src_UV_h_min*src_pitchU));
@@ -3775,35 +3776,35 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			switch(mode)
 			{
 				case -1 :
-					if (Current_Threads>1) f_proc=5;
+					if (threads_number>1) f_proc=5;
 					else Convert_Automatic_YUY2(0);
 					break;
 				case 0 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (Current_Threads>1) f_proc=2;
+						if (threads_number>1) f_proc=2;
 						else Convert_Progressive_YUY2_SSE(0);
 					}
 					else
 					{
-						if (Current_Threads>1) f_proc=1;
+						if (threads_number>1) f_proc=1;
 						else Convert_Progressive_YUY2(0);
 					}
 					break;
 				case 1 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (Current_Threads>1) f_proc=4;
+						if (threads_number>1) f_proc=4;
 						else Convert_Interlaced_YUY2_SSE(0);
 					}
 					else
 					{
-						if (Current_Threads>1) f_proc=3;
+						if (threads_number>1) f_proc=3;
 						else Convert_Interlaced_YUY2(0);
 					}
 					break;
 				case 2 : 
-					if (Current_Threads>1) f_proc=6;
+					if (threads_number>1) f_proc=6;
 					else Convert_Test_YUY2(0);
 					break;
 				default : f_proc=0; break;
@@ -3813,35 +3814,35 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 			switch(mode)
 			{
 				case -1 : 
-					if (Current_Threads>1) f_proc=11;
+					if (threads_number>1) f_proc=11;
 					else Convert_Automatic_YV16(0);
 					break;
 				case 0 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (Current_Threads>1) f_proc=8;
+						if (threads_number>1) f_proc=8;
 						else Convert_Progressive_YV16_SSE(0);
 					}
 					else
 					{
-						if (Current_Threads>1) f_proc=7;
+						if (threads_number>1) f_proc=7;
 						else Convert_Progressive_YV16(0);
 					}
 					break;
 				case 1 :
 					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
 					{
-						if (Current_Threads>1) f_proc=10;
+						if (threads_number>1) f_proc=10;
 						else Convert_Interlaced_YV16_SSE(0);
 					}
 					else
 					{
-						if (Current_Threads>1) f_proc=9;
+						if (threads_number>1) f_proc=9;
 						else Convert_Interlaced_YV16(0);
 					}
 					break;
 				case 2 : 
-					if (Current_Threads>1) f_proc=12;
+					if (threads_number>1) f_proc=12;
 					else Convert_Test_YV16(0);
 					break;
 				default : f_proc=0; break;
@@ -3850,17 +3851,17 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 		default : f_proc=0; break;
 	}
 
-	if (Current_Threads>1)
+	if (threads_number>1)
 	{
-		for(uint8_t i=0; i<Current_Threads; i++)
+		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=f_proc;
-		local_pool.StartThreads(ProcId);
-		local_pool.WaitThreadsEnd(ProcId);
+		poolInterface.StartThreads(UserId);
+		poolInterface.WaitThreadsEnd(UserId);
 
-		for(uint8_t i=0; i<Current_Threads; i++)
+		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=0;
 
-		local_pool.ReleaseThreadPool(ProcId);
+		poolInterface.ReleaseThreadPool(UserId);
 	}
 
 	LeaveCriticalSection(&CriticalSection);
