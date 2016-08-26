@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define VERSION "AutoYUY2 3.1.1 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.1.2 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -89,6 +89,7 @@ typedef struct _MT_Data_Info
 } MT_Data_Info;
 
 
+static ThreadPoolInterface *poolInterface;
 
 class AutoYUY2 : public GenericVideoFilter
 {
@@ -124,7 +125,6 @@ private:
 	BOOL CSectionOk;
 	uint16_t UserId;
 	
-	ThreadPoolInterface *poolInterface;
 	ThreadPoolFunction StaticThreadpoolF;
 
 	static void StaticThreadpool(void *ptr);
@@ -294,8 +294,6 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		MT_Thread[i].thread_Id=(uint8_t)i;
 		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
-
-	poolInterface=ThreadPoolInterface::Init(1);
 
 	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status !");
 
@@ -3929,6 +3927,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 {
 	if (IInstrSet<0) InstructionSet();
 	CPU_Cache_Size=DataCacheSize(0)>>2;
+	poolInterface=ThreadPoolInterface::Init(1);
 
 	AVS_linkage = vectors;
 
