@@ -3752,10 +3752,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	if (threads_number>1)
 	{
 		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,0,false))
-		{
-			FreeData();
 			env->ThrowError("AutoYUY2: Error with the TheadPool while requesting threadpool !");
-		}
 	}
 
 	for(uint8_t i=0; i<threads_number; i++)
