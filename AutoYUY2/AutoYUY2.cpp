@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.1.3 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.1.4 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -363,10 +363,13 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 	}
 	else Cache_Setting=16;
 
-	if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,true,0))
+	if (threads_number>1)
 	{
-		FreeData();
-		env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
+		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,true,0))
+		{
+			FreeData();
+			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
+		}
 	}
 }
 
@@ -383,19 +386,18 @@ void AutoYUY2::FreeData(void)
 			myfree(interlaced_tab_U[j][i]);
 		}
 	}
-
-	if (CSectionOk==TRUE)
-	{
-		DeleteCriticalSection(&CriticalSection);
-		CSectionOk=FALSE;
-	}
 }
 
 
 AutoYUY2::~AutoYUY2() 
 {
-	poolInterface->DeAllocateThreads(UserId);
+	if (threads_number>1) poolInterface->DeAllocateThreads(UserId);
 	FreeData();
+	if (CSectionOk==TRUE)
+	{
+		DeleteCriticalSection(&CriticalSection);
+		CSectionOk=FALSE;
+	}
 }
 
 
