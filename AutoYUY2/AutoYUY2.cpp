@@ -94,7 +94,8 @@ static ThreadPoolInterface *poolInterface;
 class AutoYUY2 : public GenericVideoFilter
 {
 public:
-	AutoYUY2(PClip _child, int _threshold, int _mode, int _output,int _threads, IScriptEnvironment* env);
+	AutoYUY2(PClip _child, int _threshold, int _mode, int _output,int _threads,bool _LogicalCores,
+		bool _MaxPhysCores, bool _SetAffinity, IScriptEnvironment* env);
 	~AutoYUY2();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 
@@ -113,6 +114,7 @@ private:
 	int mode;
 	int output;
 	int threads;
+	bool LogicalCores,MaxPhysCores,SetAffinity;
 	uint16_t lookup_Upscale[768];
 	bool *interlaced_tab_U[MAX_MT_THREADS][Interlaced_Tab_Size],*interlaced_tab_V[MAX_MT_THREADS][Interlaced_Tab_Size];
 	bool SSE2_Enable;
@@ -267,9 +269,10 @@ uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y
 }
 
 
-AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads, IScriptEnvironment* env) :
-										GenericVideoFilter(_child), threshold(_threshold),
-										mode(_mode), output(_output), threads(_threads)
+AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads,bool _LogicalCores,
+	bool _MaxPhysCores, bool _SetAffinity,IScriptEnvironment* env) :
+	GenericVideoFilter(_child), threshold(_threshold), mode(_mode), output(_output), threads(_threads),
+	LogicalCores(_LogicalCores),MaxPhysCores(_MaxPhysCores),SetAffinity(_SetAffinity)
 {
 	bool ok;
 	int16_t i,j;
@@ -299,7 +302,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	if (vi.height>=32)
 	{
-		threads_number=poolInterface->GetThreadNumber(threads,false);
+		threads_number=poolInterface->GetThreadNumber(threads,LogicalCores);
 		if (threads_number==0)
 			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info !");
 	}
@@ -365,7 +368,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	if (threads_number>1)
 	{
-		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,true,0))
+		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,MaxPhysCores,SetAffinity,0))
 		{
 			FreeData();
 			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
@@ -3892,8 +3895,6 @@ const AVS_Linkage *AVS_linkage = nullptr;
 */
 AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironment* env)
 {
-	char buffer_in[1024];
-
 	if (!args[0].IsClip()) env->ThrowError("AutoYUY2: arg 0 must be a clip !");
 
 	VideoInfo vi = args[0].AsClip()->GetVideoInfo();
@@ -3911,18 +3912,20 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int mode=args[2].AsInt(-1);
 	const int output=args[3].AsInt(1);
 	const int threads=args[4].AsInt(0);
+	const bool LogicalCores=args[5].AsBool(false);
+	const bool MaxPhysCores=args[6].AsBool(true);
+	const bool SetAffinity=args[7].AsBool(true);
 
+		//bool LogicalCores,MaxPhysCores,SetAffinity;
 	if ((mode<-1) || (mode>2))
 		env->ThrowError("AutoYUY2: [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
 	if ((output<0) || (output>1))
 		env->ThrowError("AutoYUY2: [output] must be 0 (YUY2) or 1 (YV16)");
 	if ((threads<0) || (threads>MAX_MT_THREADS))
-	{
-		sprintf_s(buffer_in,1024,"AutoYUY2: [threads] must be between 0 and %ld.",MAX_MT_THREADS);
-		env->ThrowError(buffer_in);
-	}
+		env->ThrowError("AutoYUY2: [threads] must be between 0 and %ld.",MAX_MT_THREADS);
 
-	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads, env);
+	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads, LogicalCores, MaxPhysCores,
+		SetAffinity, env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
@@ -3933,7 +3936,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 
 	AVS_linkage = vectors;
 
-    env->AddFunction("AutoYUY2", "c[threshold]i[mode]i[output]i[threads]i", Create_AutoYUY2, 0);
+    env->AddFunction("AutoYUY2", "c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b", Create_AutoYUY2, 0);
 
     return "AutoYUY2 Pluggin";
 }
