@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.1.4 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.1.5 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -159,11 +159,9 @@ int __stdcall AutoYUY2::SetCacheHints(int cachehints,int frame_range)
 {
   switch (cachehints)
   {
-  case CACHE_DONT_CACHE_ME:
-    return 1;
-  case CACHE_GET_MTMODE:
+  case CACHE_GET_MTMODE :
     return MT_MULTI_INSTANCE;
-  default:
+  default :
     return 0;
   }
 }
