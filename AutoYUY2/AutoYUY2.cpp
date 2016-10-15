@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.1.5 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.1.6 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -123,9 +123,8 @@ private:
 	Public_MT_Data_Thread MT_Thread[MAX_MT_THREADS];
 	MT_Data_Info MT_Data[MAX_MT_THREADS];
 	uint8_t threads_number;
-	CRITICAL_SECTION CriticalSection;
-	BOOL CSectionOk;
 	uint16_t UserId;
+	HANDLE ghMutex;
 	
 	ThreadPoolFunction StaticThreadpoolF;
 
@@ -283,7 +282,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 			interlaced_tab_V[j][i]=NULL;
 		}
 	}
-	CSectionOk=FALSE;
+	ghMutex=NULL;
 	UserId=0;
 
 	StaticThreadpoolF=StaticThreadpool;
@@ -308,8 +307,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
 
-	CSectionOk=InitializeCriticalSectionAndSpinCount(&CriticalSection,0x00000040);
-	if (CSectionOk==FALSE) env->ThrowError("AutoYUY2: Unable to create Critical Section !");
+	ghMutex=CreateMutex(NULL,FALSE,NULL);
+	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex !");
 
 	if ((mode==-1) || (mode==2))
 	{
@@ -387,6 +386,7 @@ void AutoYUY2::FreeData(void)
 			myfree(interlaced_tab_U[j][i]);
 		}
 	}
+	myCloseHandle(ghMutex);
 }
 
 
@@ -394,11 +394,6 @@ AutoYUY2::~AutoYUY2()
 {
 	if (threads_number>1) poolInterface->DeAllocateThreads(UserId);
 	FreeData();
-	if (CSectionOk==TRUE)
-	{
-		DeleteCriticalSection(&CriticalSection);
-		CSectionOk=FALSE;
-	}
 }
 
 
@@ -3721,7 +3716,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	SetMemcpyCacheLimit(Cache_Setting);
 	SetMemsetCacheLimit(Cache_Setting);
 
-	EnterCriticalSection(&CriticalSection);
+	WaitForSingleObject(ghMutex,INFINITE);
 
 	switch(output)
 	{
@@ -3755,7 +3750,10 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	if (threads_number>1)
 	{
 		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,0,false))
+		{
+			ReleaseMutex(ghMutex);
 			env->ThrowError("AutoYUY2: Error with the TheadPool while requesting threadpool !");
+		}
 	}
 
 	for(uint8_t i=0; i<threads_number; i++)
@@ -3866,8 +3864,8 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 
 		poolInterface->ReleaseThreadPool(UserId);
 	}
-
-	LeaveCriticalSection(&CriticalSection);
+	
+	ReleaseMutex(ghMutex);
 
 	return dst;
 }
