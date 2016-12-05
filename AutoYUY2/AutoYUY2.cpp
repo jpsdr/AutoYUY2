@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.1.6 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.1.7 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
