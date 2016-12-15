@@ -66,7 +66,7 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
 
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.1.7 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.2.0 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -95,7 +95,7 @@ class AutoYUY2 : public GenericVideoFilter
 {
 public:
 	AutoYUY2(PClip _child, int _threshold, int _mode, int _output,int _threads,bool _LogicalCores,
-		bool _MaxPhysCores, bool _SetAffinity, IScriptEnvironment* env);
+		bool _MaxPhysCores, bool _SetAffinity,bool _Sleep, IScriptEnvironment* env);
 	~AutoYUY2();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 
@@ -114,7 +114,7 @@ private:
 	int mode;
 	int output;
 	int threads;
-	bool LogicalCores,MaxPhysCores,SetAffinity;
+	bool LogicalCores,MaxPhysCores,SetAffinity,Sleep;
 	uint16_t lookup_Upscale[768];
 	bool *interlaced_tab_U[MAX_MT_THREADS][Interlaced_Tab_Size],*interlaced_tab_V[MAX_MT_THREADS][Interlaced_Tab_Size];
 	bool SSE2_Enable;
@@ -267,9 +267,9 @@ uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y
 
 
 AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads,bool _LogicalCores,
-	bool _MaxPhysCores, bool _SetAffinity,IScriptEnvironment* env) :
+	bool _MaxPhysCores, bool _SetAffinity,bool _Sleep,IScriptEnvironment* env) :
 	GenericVideoFilter(_child), threshold(_threshold), mode(_mode), output(_output), threads(_threads),
-	LogicalCores(_LogicalCores),MaxPhysCores(_MaxPhysCores),SetAffinity(_SetAffinity)
+	LogicalCores(_LogicalCores),MaxPhysCores(_MaxPhysCores),SetAffinity(_SetAffinity),Sleep(_Sleep)
 {
 	bool ok;
 	int16_t i,j;
@@ -295,20 +295,20 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
 
-	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status !");
+	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status!");
 
 	if (vi.height>=32)
 	{
 		threads_number=poolInterface->GetThreadNumber(threads,LogicalCores);
 		if (threads_number==0)
-			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info !");
+			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info!");
 	}
 	else threads_number=1;
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
 
 	ghMutex=CreateMutex(NULL,FALSE,NULL);
-	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex !");
+	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex!");
 
 	if ((mode==-1) || (mode==2))
 	{
@@ -365,10 +365,10 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	if (threads_number>1)
 	{
-		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,MaxPhysCores,SetAffinity,0))
+		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,MaxPhysCores,SetAffinity,Sleep,-1))
 		{
 			FreeData();
-			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool !");
+			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
 		}
 	}
 }
@@ -3749,7 +3749,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 
 	if (threads_number>1)
 	{
-		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,0,false))
+		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,-1,false))
 		{
 			ReleaseMutex(ghMutex);
 			env->ThrowError("AutoYUY2: Error with the TheadPool while requesting threadpool !");
@@ -3777,76 +3777,32 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 		case 0 :
 			switch(mode)
 			{
-				case -1 :
-					if (threads_number>1) f_proc=5;
-					else Convert_Automatic_YUY2(0);
-					break;
-				case 0 :
-					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
-					{
-						if (threads_number>1) f_proc=2;
-						else Convert_Progressive_YUY2_SSE(0);
-					}
-					else
-					{
-						if (threads_number>1) f_proc=1;
-						else Convert_Progressive_YUY2(0);
-					}
+				case -1 : f_proc=5; break;
+				case 0 : 
+					if ((SSE2_Enable) && ((dst_w & 0x7)==0)) f_proc=2;
+					else f_proc=1;
 					break;
 				case 1 :
-					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
-					{
-						if (threads_number>1) f_proc=4;
-						else Convert_Interlaced_YUY2_SSE(0);
-					}
-					else
-					{
-						if (threads_number>1) f_proc=3;
-						else Convert_Interlaced_YUY2(0);
-					}
+					if ((SSE2_Enable) && ((dst_w & 0x7)==0)) f_proc=4;
+					else f_proc=3;
 					break;
-				case 2 : 
-					if (threads_number>1) f_proc=6;
-					else Convert_Test_YUY2(0);
-					break;
+				case 2 : f_proc=6; break;
 				default : f_proc=0; break;
 			}
 			break;
 		case 1 :
 			switch(mode)
 			{
-				case -1 : 
-					if (threads_number>1) f_proc=11;
-					else Convert_Automatic_YV16(0);
-					break;
+				case -1 : f_proc=11; break;
 				case 0 :
-					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
-					{
-						if (threads_number>1) f_proc=8;
-						else Convert_Progressive_YV16_SSE(0);
-					}
-					else
-					{
-						if (threads_number>1) f_proc=7;
-						else Convert_Progressive_YV16(0);
-					}
+					if ((SSE2_Enable) && ((dst_w & 0x7)==0)) f_proc=8;
+					else f_proc=7;
 					break;
 				case 1 :
-					if ((SSE2_Enable) && ((dst_w & 0x7)==0))
-					{
-						if (threads_number>1) f_proc=10;
-						else Convert_Interlaced_YV16_SSE(0);
-					}
-					else
-					{
-						if (threads_number>1) f_proc=9;
-						else Convert_Interlaced_YV16(0);
-					}
+					if ((SSE2_Enable) && ((dst_w & 0x7)==0)) f_proc=10;
+					else f_proc=9;
 					break;
-				case 2 : 
-					if (threads_number>1) f_proc=12;
-					else Convert_Test_YV16(0);
-					break;
+				case 2 : f_proc=12; break;
 				default : f_proc=0; break;
 			}
 			break;
@@ -3862,7 +3818,26 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=0;
 
-		poolInterface->ReleaseThreadPool(UserId);
+		poolInterface->ReleaseThreadPool(UserId,Sleep);
+	}
+	else
+	{
+		switch(f_proc)
+		{
+			case 1 : Convert_Progressive_YUY2(0); break;
+			case 2 : Convert_Progressive_YUY2_SSE(0); break;
+			case 3 : Convert_Interlaced_YUY2(0); break;
+			case 4 : Convert_Interlaced_YUY2_SSE(0); break;
+			case 5 : Convert_Automatic_YUY2(0); break;
+			case 6 : Convert_Test_YUY2(0); break;
+			case 7 : Convert_Progressive_YV16(0); break;
+			case 8 : Convert_Progressive_YV16_SSE(0); break;
+			case 9 : Convert_Interlaced_YV16(0); break;
+			case 10 : Convert_Interlaced_YV16_SSE(0); break;
+			case 11 : Convert_Automatic_YV16(0); break;
+			case 12 : Convert_Test_YV16(0); break;
+			default : break;
+		}
 	}
 	
 	ReleaseMutex(ghMutex);
@@ -3908,9 +3883,11 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int mode=args[2].AsInt(-1);
 	const int output=args[3].AsInt(1);
 	const int threads=args[4].AsInt(0);
-	const bool LogicalCores=args[5].AsBool(false);
+	const bool LogicalCores=args[5].AsBool(true);
 	const bool MaxPhysCores=args[6].AsBool(true);
-	const bool SetAffinity=args[7].AsBool(true);
+	const bool SetAffinity=args[7].AsBool(false);
+	const bool sleep = args[8].AsBool(false);
+	int prefetch=args[9].AsInt(0);
 
 		//bool LogicalCores,MaxPhysCores,SetAffinity;
 	if ((mode<-1) || (mode>2))
@@ -3920,8 +3897,12 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	if ((threads<0) || (threads>MAX_MT_THREADS))
 		env->ThrowError("AutoYUY2: [threads] must be between 0 and %ld.",MAX_MT_THREADS);
 
+	if (prefetch==0) prefetch=1;
+	if ((prefetch<0) || (prefetch>MAX_THREAD_POOL)) env->ThrowError("AutoYUY2: [prefetch] must be between 0 and %d.",MAX_THREAD_POOL);
+	if (!poolInterface->CreatePool(prefetch)) env->ThrowError("AutoYUY2: Unable to create ThreadPool!");
+
 	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads, LogicalCores, MaxPhysCores,
-		SetAffinity, env);
+		SetAffinity,sleep, env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
@@ -3932,7 +3913,9 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 
 	AVS_linkage = vectors;
 
-    env->AddFunction("AutoYUY2", "c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b", Create_AutoYUY2, 0);
+    env->AddFunction("AutoYUY2",
+		"c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b[sleep]b[prefetch]i",
+		Create_AutoYUY2, 0);
 
     return "AutoYUY2 Pluggin";
 }
