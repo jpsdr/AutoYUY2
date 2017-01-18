@@ -27,10 +27,10 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include "avisynth.h"
 #include ".\asmlib\asmlib.h"
-#include "ThreadPoolInterface.h"
+#include "AutoYUY2.h"
 
+static ThreadPoolInterface *poolInterface;
 
 extern "C" int IInstrSet;
 // Cache size for asmlib function, a little more the size of a 720p YV12 frame
@@ -64,95 +64,6 @@ extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4(const void *scr_1,
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_2b(const void *scr_1,const void *src_2,void *dst,int w);
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_3b(const void *scr_1,const void *src_2,void *dst,int w);
 extern "C" void JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(const void *scr_1,const void *src_2,void *dst,int w);
-
-
-#define AUTOYUY2_VERSION "AutoYUY2 3.2.0 JPSDR"
-// Inspired from Neuron2 filter
-
-#define Interlaced_Tab_Size 3
-
-#define myfree(ptr) if (ptr!=NULL) { free(ptr); ptr=NULL;}
-#define myCloseHandle(ptr) if (ptr!=NULL) { CloseHandle(ptr); ptr=NULL;}
-
-
-typedef struct _MT_Data_Info
-{
-	void *src1,*src2,*src3;
-	void *dst1,*dst2,*dst3;
-	int src_pitch1,src_pitch2,src_pitch3;
-	int dst_pitch1,dst_pitch2,dst_pitch3;
-	int32_t src_Y_h_min,src_Y_h_max,src_Y_w;
-	int32_t src_UV_h_min,src_UV_h_max,src_UV_w;
-	int32_t dst_Y_h_min,dst_Y_h_max,dst_Y_w;
-	int32_t dst_UV_h_min,dst_UV_h_max,dst_UV_w;
-	bool top,bottom;
-} MT_Data_Info;
-
-
-static ThreadPoolInterface *poolInterface;
-
-class AutoYUY2 : public GenericVideoFilter
-{
-public:
-	AutoYUY2(PClip _child, int _threshold, int _mode, int _output,int _threads,bool _LogicalCores,
-		bool _MaxPhysCores, bool _SetAffinity,bool _Sleep, IScriptEnvironment* env);
-	~AutoYUY2();
-    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
-
-	int __stdcall SetCacheHints(int cachehints, int frame_range);
-
-private:
-	typedef struct _YUYV
-	{
-		uint8_t y1;
-		uint8_t u;
-		uint8_t y2;
-		uint8_t v;
-	} YUYV;
-
-	int threshold;
-	int mode;
-	int output;
-	int threads;
-	bool LogicalCores,MaxPhysCores,SetAffinity,Sleep;
-	uint16_t lookup_Upscale[768];
-	bool *interlaced_tab_U[MAX_MT_THREADS][Interlaced_Tab_Size],*interlaced_tab_V[MAX_MT_THREADS][Interlaced_Tab_Size];
-	bool SSE2_Enable;
-	size_t Cache_Setting;
-
-	Public_MT_Data_Thread MT_Thread[MAX_MT_THREADS];
-	MT_Data_Info MT_Data[MAX_MT_THREADS];
-	uint8_t threads_number;
-	uint16_t UserId;
-	HANDLE ghMutex;
-	
-	ThreadPoolFunction StaticThreadpoolF;
-
-	static void StaticThreadpool(void *ptr);
-
-	uint8_t CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y);
-
-	void FreeData(void);
-
-	inline void Move_Full(const void *src_, void *dst_, const int32_t w,const int32_t h,
-		int src_pitch,int dst_pitch);
-
-	void Convert_Progressive_YUY2(uint8_t thread_num);
-	void Convert_Progressive_YUY2_SSE(uint8_t thread_num);
-	void Convert_Interlaced_YUY2(uint8_t thread_num);
-	void Convert_Interlaced_YUY2_SSE(uint8_t thread_num);
-	void Convert_Automatic_YUY2(uint8_t thread_num);
-	void Convert_Test_YUY2(uint8_t thread_num);
-
-	void Convert_Progressive_YV16(uint8_t thread_num);
-	void Convert_Progressive_YV16_SSE(uint8_t thread_num);
-	void Convert_Interlaced_YV16(uint8_t thread_num);
-	void Convert_Interlaced_YV16_SSE(uint8_t thread_num);
-	void Convert_Automatic_YV16(uint8_t thread_num);
-	void Convert_Test_YV16(uint8_t thread_num);
-};
-
-
 
 int __stdcall AutoYUY2::SetCacheHints(int cachehints,int frame_range)
 {
@@ -427,7 +338,7 @@ inline void AutoYUY2::Move_Full(const void *src_, void *dst_, const int32_t w,co
 
 void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -643,7 +554,7 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 
 void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -858,7 +769,7 @@ void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 
 void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -1004,7 +915,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 
 void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -1149,7 +1060,7 @@ void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 
 void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -1604,7 +1515,7 @@ void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 
 void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -2059,7 +1970,7 @@ void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 
 void AutoYUY2::Convert_Progressive_YUY2(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -2203,7 +2114,7 @@ void AutoYUY2::Convert_Progressive_YUY2(uint8_t thread_num)
 
 void AutoYUY2::Convert_Progressive_YUY2_SSE(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -2307,7 +2218,7 @@ void AutoYUY2::Convert_Progressive_YUY2_SSE(uint8_t thread_num)
 
 void AutoYUY2::Convert_Interlaced_YUY2(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -2550,7 +2461,7 @@ void AutoYUY2::Convert_Interlaced_YUY2(uint8_t thread_num)
 
 void AutoYUY2::Convert_Interlaced_YUY2_SSE(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -2712,7 +2623,7 @@ void AutoYUY2::Convert_Interlaced_YUY2_SSE(uint8_t thread_num)
 
 void AutoYUY2::Convert_Automatic_YUY2(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -3189,7 +3100,7 @@ void AutoYUY2::Convert_Automatic_YUY2(uint8_t thread_num)
 
 void AutoYUY2::Convert_Test_YUY2(uint8_t thread_num)
 {
-	const MT_Data_Info mt_data_inf=MT_Data[thread_num];
+	const MT_Data_Info_AutoYUY2 mt_data_inf=MT_Data[thread_num];
 
 	const uint8_t *srcYp=(const uint8_t *)mt_data_inf.src1;
 	const uint8_t *srcUp=(const uint8_t *)mt_data_inf.src2;
@@ -3909,7 +3820,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 {
 	if (IInstrSet<0) InstructionSet();
 	CPU_Cache_Size=DataCacheSize(0)>>2;
-	poolInterface=ThreadPoolInterface::Init(1);
+	poolInterface=ThreadPoolInterface::Init(0);
 
 	AVS_linkage = vectors;
 
