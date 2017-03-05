@@ -27,16 +27,9 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include ".\asmlib\asmlib.h"
 #include "AutoYUY2.h"
 
 static ThreadPoolInterface *poolInterface;
-
-extern "C" int IInstrSet;
-// Cache size for asmlib function, a little more the size of a 720p YV12 frame
-#define MAX_CACHE_SIZE 1400000
-
-static size_t CPU_Cache_Size;
 
 extern "C" void JPSDR_AutoYUY2_1(const uint8_t *scr_y,const uint8_t *src_u,const uint8_t *src_v,
 		uint8_t *dst,int32_t w);
@@ -267,13 +260,6 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	const size_t img_size=vi.BMPSize();
 
-	if (img_size<=MAX_CACHE_SIZE)
-	{
-		if (CPU_Cache_Size>=img_size) Cache_Setting=img_size;
-		else Cache_Setting=16;
-	}
-	else Cache_Setting=16;
-
 	if (threads_number>1)
 	{
 		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,MaxPhysCores,SetAffinity,Sleep,-1))
@@ -322,13 +308,13 @@ inline void AutoYUY2::Move_Full(const void *src_, void *dst_, const int32_t w,co
 			src+=(h-1)*src_pitch;
 			dst+=(h-1)*dst_pitch;
 		}
-		A_memcpy(dst,src,(size_t)h*(size_t)w);
+		memcpy(dst,src,(size_t)h*(size_t)w);
 	}
 	else
 	{
 		for(int i=0; i<h; i++)
 		{
-			A_memcpy(dst,src,w);
+			memcpy(dst,src,w);
 			src+=src_pitch;
 			dst+=dst_pitch;
 		}
@@ -392,10 +378,10 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dstUp,src_U,w_U);
+			memcpy(dstUp,src_U,w_U);
 			dstUp+=dst_pitch_U;
 
-			A_memcpy(dstUp,src_Un,w_U);
+			memcpy(dstUp,src_Un,w_U);
 			dstUp+=dst_pitch_U;
 
 			if (_align_U) JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_2b(src_Unn,src_U,dstUp,w_U4);
@@ -453,10 +439,10 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 			else JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_2(src_Up,src_Un,dstUp,w_U4);
 			dstUp+=dst_pitch_U;
 
-			A_memcpy(dstUp,src_U,w_U);
+			memcpy(dstUp,src_U,w_U);
 			dstUp+=dst_pitch_U;
 
-			A_memcpy(dstUp,src_Un,w_U);
+			memcpy(dstUp,src_Un,w_U);
 			dstUp+=dst_pitch_U;
 
 			src_U+=pitch_U_2;
@@ -474,10 +460,10 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dstVp,src_V,w_V);
+			memcpy(dstVp,src_V,w_V);
 			dstVp+=dst_pitch_V;
 
-			A_memcpy(dstVp,src_Vn,w_V);
+			memcpy(dstVp,src_Vn,w_V);
 			dstVp+=dst_pitch_V;
 
 			if (_align_V) JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_2b(src_Vnn,src_V,dstVp,w_V4);
@@ -535,10 +521,10 @@ void AutoYUY2::Convert_Interlaced_YV16_SSE(uint8_t thread_num)
 			else JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_2(src_Vp,src_Vn,dstVp,w_V4);
 			dstVp+=dst_pitch_V;
 
-			A_memcpy(dstVp,src_V,w_V);
+			memcpy(dstVp,src_V,w_V);
 			dstVp+=dst_pitch_V;
 
-			A_memcpy(dstVp,src_Vn,w_V);
+			memcpy(dstVp,src_Vn,w_V);
 			dstVp+=dst_pitch_V;
 
 			src_V+=pitch_V_2;
@@ -606,10 +592,10 @@ void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_U,src_U,w_U);
+			memcpy(dst_U,src_U,w_U);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_U);
+			memcpy(dst_U,src_Un,w_U);
 			dst_U+=dst_pitch_U;
 
 			for(int32_t j=0; j<w_U; j++)
@@ -667,10 +653,10 @@ void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 				dst_U[j]=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4)>>3);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_U,w_U);
+			memcpy(dst_U,src_U,w_U);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_U);
+			memcpy(dst_U,src_Un,w_U);
 			dst_U+=dst_pitch_U;
 
 			src_U+=pitch_U_2;
@@ -688,10 +674,10 @@ void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_V,src_V,w_V);
+			memcpy(dst_V,src_V,w_V);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_V);
+			memcpy(dst_V,src_Vn,w_V);
 			dst_V+=dst_pitch_V;
 
 			for(int32_t j=0; j<w_V; j++)
@@ -749,10 +735,10 @@ void AutoYUY2::Convert_Interlaced_YV16(uint8_t thread_num)
 				dst_V[j]=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4)>>3);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_V,w_V);
+			memcpy(dst_V,src_V,w_V);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_V);
+			memcpy(dst_V,src_Vn,w_V);
 			dst_V+=dst_pitch_V;
 
 			src_V+=pitch_V_2;
@@ -814,7 +800,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<2; i+=2)
 		{
-			A_memcpy(dstUp,src_U,w_U);
+			memcpy(dstUp,src_U,w_U);
 			dstUp+=dst_pitch_U;
 
 			if (_align_U) JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(src_U,src_Un,dstUp,w_U4);
@@ -850,7 +836,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 			else JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4(src_U,src_Up,dstUp,w_U4);
 			dstUp+=dst_pitch_U;
 
-			A_memcpy(dstUp,src_U,w_U);
+			memcpy(dstUp,src_U,w_U);
 			dstUp+=dst_pitch_U;
 
 			src_U+=src_pitchU;
@@ -865,7 +851,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<2; i+=2)
 		{
-			A_memcpy(dstVp,src_V,w_V);
+			memcpy(dstVp,src_V,w_V);
 			dstVp+=dst_pitch_V;
 
 			if (_align_V) JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4b(src_V,src_Vn,dstVp,w_V4);
@@ -901,7 +887,7 @@ void AutoYUY2::Convert_Progressive_YV16_SSE(uint8_t thread_num)
 			else JPSDR_AutoYUY2_Convert420_to_Planar422_SSE2_4(src_V,src_Vp,dstVp,w_V4);
 			dstVp+=dst_pitch_V;
 
-			A_memcpy(dstVp,src_V,w_V);
+			memcpy(dstVp,src_V,w_V);
 			dstVp+=dst_pitch_V;
 
 			src_V+=src_pitchV;
@@ -958,7 +944,7 @@ void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<2; i+=2)
 		{
-			A_memcpy(dst_U,src_U,w_U);
+			memcpy(dst_U,src_U,w_U);
 			dst_U+=dst_pitch_U;
 
 			for(int32_t j=0; j<w_U; j++)
@@ -994,7 +980,7 @@ void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 				dst_U[j]=(uint8_t)((lookup[src_U[j]]+(uint16_t)src_Up[j]+2)>>2);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_U,w_U);
+			memcpy(dst_U,src_U,w_U);
 			dst_U+=dst_pitch_U;
 
 			src_U+=src_pitchU;
@@ -1009,7 +995,7 @@ void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<2; i+=2)
 		{
-			A_memcpy(dst_V,src_V,w_V);
+			memcpy(dst_V,src_V,w_V);
 			dst_V+=dst_pitch_V;
 
 			for(int32_t j=0; j<w_V; j++)
@@ -1045,7 +1031,7 @@ void AutoYUY2::Convert_Progressive_YV16(uint8_t thread_num)
 				dst_V[j]=(uint8_t)((lookup[src_V[j]]+(uint16_t)src_Vp[j]+2)>>2);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_V,w_V);
+			memcpy(dst_V,src_V,w_V);
 			dst_V+=dst_pitch_V;
 
 			src_V+=src_pitchV;
@@ -1113,10 +1099,10 @@ void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_U,src_U,w_UV);
+			memcpy(dst_U,src_U,w_UV);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_UV);
+			memcpy(dst_U,src_Un,w_UV);
 			dst_U+=dst_pitch_U;
 
 			for(int32_t j=0; j<w_UV; j++)
@@ -1294,10 +1280,10 @@ void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 				dst_U[j]=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4)>>3);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_U,w_UV);
+			memcpy(dst_U,src_U,w_UV);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_UV);
+			memcpy(dst_U,src_Un,w_UV);
 			dst_U+=dst_pitch_U;
 
 			src_U+=pitch_U_2;
@@ -1315,10 +1301,10 @@ void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_V,src_V,w_UV);
+			memcpy(dst_V,src_V,w_UV);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_UV);
+			memcpy(dst_V,src_Vn,w_UV);
 			dst_V+=dst_pitch_V;
 
 			for(int32_t j=0; j<w_UV; j++)
@@ -1495,10 +1481,10 @@ void AutoYUY2::Convert_Automatic_YV16(uint8_t thread_num)
 				dst_V[j]=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4)>>3);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_V,w_UV);
+			memcpy(dst_V,src_V,w_UV);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_UV);
+			memcpy(dst_V,src_Vn,w_UV);
 			dst_V+=dst_pitch_V;
 
 			src_V+=pitch_V_2;
@@ -1568,10 +1554,10 @@ void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_U,src_U,w_UV);
+			memcpy(dst_U,src_U,w_UV);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_UV);
+			memcpy(dst_U,src_Un,w_UV);
 			dst_U+=dst_pitch_U;
 
 			for(int32_t j=0; j<w_UV; j++)
@@ -1749,10 +1735,10 @@ void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 				dst_U[j]=(uint8_t)((lookup[src_Up[j]]+lookup[(uint16_t)src_Un[j]+256]+4)>>3);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_U,w_UV);
+			memcpy(dst_U,src_U,w_UV);
 			dst_U+=dst_pitch_U;
 
-			A_memcpy(dst_U,src_Un,w_UV);
+			memcpy(dst_U,src_Un,w_UV);
 			dst_U+=dst_pitch_U;
 
 			src_U+=pitch_U_2;
@@ -1770,10 +1756,10 @@ void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 	{
 		for(int32_t i=0; i<4; i+=4)
 		{
-			A_memcpy(dst_V,src_V,w_UV);
+			memcpy(dst_V,src_V,w_UV);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_UV);
+			memcpy(dst_V,src_Vn,w_UV);
 			dst_V+=dst_pitch_V;
 
 			for(int32_t j=0; j<w_UV; j++)
@@ -1950,10 +1936,10 @@ void AutoYUY2::Convert_Test_YV16(uint8_t thread_num)
 				dst_V[j]=(uint8_t)((lookup[src_Vp[j]]+lookup[(uint16_t)src_Vn[j]+256]+4)>>3);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_V,w_UV);
+			memcpy(dst_V,src_V,w_UV);
 			dst_V+=dst_pitch_V;
 
-			A_memcpy(dst_V,src_Vn,w_UV);
+			memcpy(dst_V,src_Vn,w_UV);
 			dst_V+=dst_pitch_V;
 
 			src_V+=pitch_V_2;
@@ -3624,9 +3610,6 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 	int src_pitch_Y,src_pitchU,src_pitchV;
 	uint8_t f_proc;
 
-	SetMemcpyCacheLimit(Cache_Setting);
-	SetMemsetCacheLimit(Cache_Setting);
-
 	WaitForSingleObject(ghMutex,INFINITE);
 
 	switch(output)
@@ -3818,8 +3801,6 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
 {
-	if (IInstrSet<0) InstructionSet();
-	CPU_Cache_Size=DataCacheSize(0)>>2;
 	poolInterface=ThreadPoolInterface::Init(0);
 
 	AVS_linkage = vectors;
