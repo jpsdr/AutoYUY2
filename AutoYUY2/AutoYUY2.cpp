@@ -170,10 +170,8 @@ uint8_t AutoYUY2::CreateMTData(uint8_t max_threads,int32_t size_x,int32_t size_y
 }
 
 
-AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _threads,bool _LogicalCores,
-	bool _MaxPhysCores, bool _SetAffinity,bool _Sleep,IScriptEnvironment* env) :
-	GenericVideoFilter(_child), threshold(_threshold), mode(_mode), output(_output), threads(_threads),
-	LogicalCores(_LogicalCores),MaxPhysCores(_MaxPhysCores),SetAffinity(_SetAffinity),Sleep(_Sleep)
+AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_t _threads,bool _sleep,IScriptEnvironment* env) :
+	GenericVideoFilter(_child), threshold(_threshold), mode(_mode), output(_output), threads(_threads),sleep(_sleep)
 {
 	bool ok;
 	int16_t i,j;
@@ -199,15 +197,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
 
-	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status!");
-
-	if (vi.height>=32)
-	{
-		threads_number=poolInterface->GetThreadNumber(threads,LogicalCores);
-		if (threads_number==0)
-			env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info!");
-	}
-	else threads_number=1;
+	if (vi.height<32) threads_number=1;
+	else threads_number=threads;
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
 
@@ -262,10 +253,10 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, int _t
 
 	if (threads_number>1)
 	{
-		if (!poolInterface->AllocateThreads(UserId,threads_number,0,0,MaxPhysCores,SetAffinity,Sleep,-1))
+		if (!poolInterface->GetUserId(UserId))
 		{
 			FreeData();
-			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+			env->ThrowError("AutoYUY2: Error with the TheadPool while getting UserId!");
 		}
 	}
 }
@@ -289,7 +280,11 @@ void AutoYUY2::FreeData(void)
 
 AutoYUY2::~AutoYUY2() 
 {
-	if (threads_number>1) poolInterface->DeAllocateThreads(UserId);
+	if (threads_number>1)
+	{
+		poolInterface->RemoveUserId(UserId);
+		poolInterface->DeAllocateAllThreads(true);
+	}
 	FreeData();
 }
 
@@ -3806,7 +3801,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 		for(uint8_t i=0; i<threads_number; i++)
 			MT_Thread[i].f_process=0;
 
-		poolInterface->ReleaseThreadPool(UserId,Sleep);
+		poolInterface->ReleaseThreadPool(UserId,sleep);
 	}
 	else
 	{
@@ -3878,7 +3873,6 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const bool sleep = args[8].AsBool(false);
 	int prefetch=args[9].AsInt(0);
 
-		//bool LogicalCores,MaxPhysCores,SetAffinity;
 	if ((mode<-1) || (mode>2))
 		env->ThrowError("AutoYUY2: [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
 	if ((output<0) || (output>1))
@@ -3888,17 +3882,31 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 	if (prefetch==0) prefetch=1;
 	if ((prefetch<0) || (prefetch>MAX_THREAD_POOL)) env->ThrowError("AutoYUY2: [prefetch] must be between 0 and %d.",MAX_THREAD_POOL);
-	if (!poolInterface->CreatePool(prefetch)) env->ThrowError("AutoYUY2: Unable to create ThreadPool!");
 
-	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads, LogicalCores, MaxPhysCores,
-		SetAffinity,sleep, env);
+	uint8_t threads_number=1;
+
+	if (threads!=1)
+	{
+		if (!poolInterface->CreatePool(prefetch)) env->ThrowError("AutoYUY2: Unable to create ThreadPool!");
+
+		threads_number=poolInterface->GetThreadNumber(threads,LogicalCores);
+
+		if (threads_number==0) env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info!");
+
+		if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,sleep,-1))
+			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+	}
+
+	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads_number,sleep, env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
 {
+	AVS_linkage = vectors;
+
 	poolInterface=ThreadPoolInterface::Init(0);
 
-	AVS_linkage = vectors;
+	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status!");
 
     env->AddFunction("AutoYUY2",
 		"c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b[sleep]b[prefetch]i",
