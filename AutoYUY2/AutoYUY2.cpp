@@ -3893,8 +3893,11 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 		if (threads_number==0) env->ThrowError("AutoYUY2: Error with the TheadPool while getting CPU info!");
 
-		if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,-1))
-			env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+		if (threads_number>1)
+		{
+			if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,-1))
+				env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+		}
 	}
 
 	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads_number,sleep, env);
