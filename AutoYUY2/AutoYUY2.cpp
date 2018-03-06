@@ -222,13 +222,17 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 		MT_Thread[i].pFunc=StaticThreadpoolF;
 	}
 
+	ghMutex=CreateMutex(NULL,FALSE,NULL);
+	if (ghMutex==NULL)
+	{
+		if (threads>1) poolInterface->DeAllocateAllThreads(true);
+		env->ThrowError("AutoYUY2: Unable to create Mutex!");
+	}
+
 	if (vi.height<32) threads_number=1;
 	else threads_number=threads;
 
 	threads_number=CreateMTData(threads_number,vi.width,vi.height);
-
-	ghMutex=CreateMutex(NULL,FALSE,NULL);
-	if (ghMutex==NULL) env->ThrowError("AutoYUY2: Unable to create Mutex!");
 
 	if ((mode==-1) || (mode==2))
 	{
@@ -253,6 +257,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 
 		if (!ok)
 		{
+			if (threads>1) poolInterface->DeAllocateAllThreads(true);
 			FreeData();
 			env->ThrowError("AutoYUY2: Memory allocation error.");
 		}
@@ -307,11 +312,8 @@ void AutoYUY2::FreeData(void)
 
 AutoYUY2::~AutoYUY2() 
 {
-	if (threads_number>1)
-	{
-		poolInterface->RemoveUserId(UserId);
-		poolInterface->DeAllocateAllThreads(true);
-	}
+	if (threads_number>1) poolInterface->RemoveUserId(UserId);
+	if (threads>1) poolInterface->DeAllocateAllThreads(true);
 	FreeData();
 }
 
@@ -4655,7 +4657,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int threads=args[4].AsInt(0);
 	const bool LogicalCores=args[5].AsBool(true);
 	const bool MaxPhysCores=args[6].AsBool(true);
-	const bool SetAffinity=args[7].AsBool(false);
+	const bool SetAffinity=args[7].AsBool(true);
 	const bool sleep = args[8].AsBool(false);
 	int prefetch=args[9].AsInt(0);
 

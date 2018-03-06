@@ -24,7 +24,7 @@
 #include "avisynth.h"
 #include "ThreadPoolInterface.h"
 
-#define AUTOYUY2_VERSION "AutoYUY2 3.2.10 JPSDR"
+#define AUTOYUY2_VERSION "AutoYUY2 3.2.11 JPSDR"
 // Inspired from Neuron2 filter
 
 #define Interlaced_Tab_Size 3
@@ -68,7 +68,6 @@ private:
 	int threshold;
 	int mode;
 	int output;
-	int threads;
 	bool sleep;
 	uint16_t lookup_Upscale[768];
 	bool *interlaced_tab_U[MAX_MT_THREADS][Interlaced_Tab_Size],*interlaced_tab_V[MAX_MT_THREADS][Interlaced_Tab_Size];
@@ -76,7 +75,7 @@ private:
 
 	Public_MT_Data_Thread MT_Thread[MAX_MT_THREADS];
 	MT_Data_Info_AutoYUY2 MT_Data[MAX_MT_THREADS];
-	uint8_t threads_number;
+	uint8_t threads,threads_number;
 	uint16_t UserId;
 	HANDLE ghMutex;
 	
