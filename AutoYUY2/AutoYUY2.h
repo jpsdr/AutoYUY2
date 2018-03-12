@@ -30,7 +30,6 @@
 #define Interlaced_Tab_Size 3
 
 #define myfree(ptr) if (ptr!=NULL) { free(ptr); ptr=NULL;}
-#define myCloseHandle(ptr) if (ptr!=NULL) { CloseHandle(ptr); ptr=NULL;}
 
 
 typedef struct _MT_Data_Info_AutoYUY2
@@ -77,7 +76,6 @@ private:
 	MT_Data_Info_AutoYUY2 MT_Data[MAX_MT_THREADS];
 	uint8_t threads,threads_number;
 	uint16_t UserId;
-	HANDLE ghMutex;
 	
 	ThreadPoolFunction StaticThreadpoolF;
 
