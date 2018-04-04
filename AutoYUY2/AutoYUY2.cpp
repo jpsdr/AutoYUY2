@@ -22,11 +22,7 @@
  */
 
 #include <windows.h>
-#include <winreg.h>
-#include <stdio.h>
-#include <io.h>
-#include <fcntl.h>
-#include <stdint.h>
+#include <math.h>
 #include "AutoYUY2.h"
 
 static ThreadPoolInterface *poolInterface;
@@ -4667,8 +4663,39 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 		if (threads_number>1)
 		{
-			if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,-1))
-				env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+			if (prefetch>1)
+			{
+				if (SetAffinity && (prefetch<=poolInterface->GetPhysicalCoreNumber()))
+				{
+					float delta=(float)poolInterface->GetPhysicalCoreNumber()/(float)prefetch,Offset=0.0f;
+
+					for(uint8_t i=0; i<prefetch; i++)
+					{
+						if (!poolInterface->AllocateThreads(threads_number,(uint8_t)ceil(Offset),0,MaxPhysCores,true,true,i))
+						{
+							poolInterface->DeAllocateAllThreads(true);
+							env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+						}
+						Offset+=delta;
+					}
+				}
+				else
+				{
+					if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,false,true,-1))
+					{
+						poolInterface->DeAllocateAllThreads(true);
+						env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+					}
+				}
+			}
+			else
+			{
+				if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,-1))
+				{
+					poolInterface->DeAllocateAllThreads(true);
+					env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
+				}
+			}
 		}
 	}
 
