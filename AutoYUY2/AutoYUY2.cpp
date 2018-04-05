@@ -4637,7 +4637,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const int threads=args[4].AsInt(0);
 	const bool LogicalCores=args[5].AsBool(true);
 	const bool MaxPhysCores=args[6].AsBool(true);
-	const bool SetAffinity=args[7].AsBool(true);
+	const bool SetAffinity=args[7].AsBool(false);
 	const bool sleep = args[8].AsBool(false);
 	int prefetch=args[9].AsInt(0);
 
