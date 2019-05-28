@@ -1415,6 +1415,7 @@
     <ClCompile Include="ThreadPoolInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AutoYUY2.h" />
     <ClInclude Include="avisynth.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="ThreadPoolDef.h" />

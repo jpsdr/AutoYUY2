@@ -7065,7 +7065,7 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 
 	if (threads_number>1)
 	{
-		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,-1,false))
+		if (!poolInterface->RequestThreadPool(UserId,threads_number,MT_Thread,NoneThreadLevel,-1,false))
 			env->ThrowError("AutoYUY2: Error with the TheadPool while requesting threadpool !");
 	}
 
@@ -7321,6 +7321,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	const bool SetAffinity=args[7].AsBool(false);
 	const bool sleep = args[8].AsBool(false);
 	int prefetch=args[9].AsInt(0);
+	int thread_level=args[10].AsInt(6);
 
 	if ((mode<-1) || (mode>2))
 		env->ThrowError("AutoYUY2: [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
@@ -7328,6 +7329,8 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 		env->ThrowError("AutoYUY2: [output] must be 0 (YUY2) or 1 (YV16)");
 	if ((threads<0) || (threads>MAX_MT_THREADS))
 		env->ThrowError("AutoYUY2: [threads] must be between 0 and %ld.",MAX_MT_THREADS);
+	if ((thread_level<1) || (thread_level>7))
+		env->ThrowError("AutoYUY2: [ThreadLevel] must be between 1 and 7.");
 
 	if (prefetch==0) prefetch=1;
 	if ((prefetch<0) || (prefetch>MAX_THREAD_POOL)) env->ThrowError("AutoYUY2: [prefetch] must be between 0 and %d.",MAX_THREAD_POOL);
@@ -7336,6 +7339,9 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 	if (threads!=1)
 	{
+		const ThreadLevelName TabLevel[8]={NoneThreadLevel,IdleThreadLevel,LowestThreadLevel,
+			BelowThreadLevel,NormalThreadLevel,AboveThreadLevel,HighestThreadLevel,CriticalThreadLevel};
+
 		if (!poolInterface->CreatePool(prefetch)) env->ThrowError("AutoYUY2: Unable to create ThreadPool!");
 
 		threads_number=poolInterface->GetThreadNumber(threads,LogicalCores);
@@ -7352,7 +7358,8 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 
 					for(uint8_t i=0; i<prefetch; i++)
 					{
-						if (!poolInterface->AllocateThreads(threads_number,(uint8_t)ceil(Offset),0,MaxPhysCores,true,true,i))
+						if (!poolInterface->AllocateThreads(threads_number,(uint8_t)ceil(Offset),0,MaxPhysCores,
+							true,true,TabLevel[thread_level],i))
 						{
 							poolInterface->DeAllocateAllThreads(true);
 							env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
@@ -7362,7 +7369,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 				}
 				else
 				{
-					if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,false,true,-1))
+					if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,false,true,TabLevel[thread_level],-1))
 					{
 						poolInterface->DeAllocateAllThreads(true);
 						env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
@@ -7371,7 +7378,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 			}
 			else
 			{
-				if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,-1))
+				if (!poolInterface->AllocateThreads(threads_number,0,0,MaxPhysCores,SetAffinity,true,TabLevel[thread_level],-1))
 				{
 					poolInterface->DeAllocateAllThreads(true);
 					env->ThrowError("AutoYUY2: Error with the TheadPool while allocating threadpool!");
@@ -7392,7 +7399,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 	if (!poolInterface->GetThreadPoolInterfaceStatus()) env->ThrowError("AutoYUY2: Error with the TheadPool status!");
 
     env->AddFunction("AutoYUY2",
-		"c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b[sleep]b[prefetch]i",
+		"c[threshold]i[mode]i[output]i[threads]i[logicalCores]b[MaxPhysCore]b[SetAffinity]b[sleep]b[prefetch]i[ThreadLevel]i",
 		Create_AutoYUY2, 0);
 
     return "AutoYUY2 Pluggin";
