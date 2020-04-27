@@ -6907,6 +6907,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 			env->ThrowError("AutoYUY2: Error with the TheadPool while getting UserId!");
 		}
 	}
+	has_at_least_v8=true;
+	try { env->CheckVersion(8); } catch (const AvisynthError&) { has_at_least_v8=false; }
 }
 
 
@@ -7017,7 +7019,7 @@ void AutoYUY2::StaticThreadpool(void *ptr)
 PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env) 
 {
 	PVideoFrame src = child->GetFrame(n,env);
-	PVideoFrame dst = env->NewVideoFrame(vi,64);
+	PVideoFrame dst = (has_at_least_v8)?env->NewVideoFrameP(vi,&src):env->NewVideoFrame(vi,64);
 	uint8_t *dstw;
 	uint8_t *dstYw,*dstUw,*dstVw;
 	const uint8_t *srcYr = src->GetReadPtr(PLANAR_Y);
