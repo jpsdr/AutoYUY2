@@ -22,8 +22,8 @@
  *
  */
 
-#include "avisynth.h"
-#include "ThreadPoolInterface.h"
+#include "./avisynth.h"
+#include "./ThreadPoolInterface.h"
 
 #define AUTOYUY2_VERSION "AutoYUY2 4.1.3 JPSDR"
 // Inspired from Neuron2 filter
