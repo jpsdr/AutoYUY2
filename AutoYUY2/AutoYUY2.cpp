@@ -6890,7 +6890,10 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 	
 	SSE2_Enable=((env->GetCPUFlags()&CPUF_SSE2)!=0);
 	AVX_Enable=((env->GetCPUFlags()&CPUF_AVX)!=0);
+	AVX2_Enable=false;
+#ifdef AVX2_BUILD_POSSIBLE
 	AVX2_Enable=((env->GetCPUFlags()&CPUF_AVX2)!=0);
+#endif
 
 	if (threads_number>1)
 	{
