@@ -34,6 +34,7 @@ typedef struct _UserData
 {
 	uint16_t UserId;
 	bool AllowSeveral;
+	bool AllowWaiting;
 	int8_t NbrePool;
 	int8_t UsedPool[MAX_THREAD_POOL];
 } UserData;
@@ -91,6 +92,8 @@ class ThreadPoolInterface
 	bool EnableAllowSeveral(uint16_t UserId);
 	bool DisableAllowSeveral(uint16_t UserId);
 	bool IsAllowedSeveral(uint16_t UserId);
+	bool EnableWaitonRequest(uint16_t UserId);
+	bool DisableWaitonRequest(uint16_t UserId);
 	int8_t GetPoolAllocated(uint16_t UserId);
 	int8_t GetPoolNumber(uint16_t UserId,int8_t idxPool);
 	int8_t GetPoolIndex(uint16_t UserId,int8_t nPool);
