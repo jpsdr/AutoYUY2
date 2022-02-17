@@ -6776,7 +6776,7 @@ static void Convert_Test_YUY2(const MT_Data_Info_AutoYUY2 &mt_data_inf,const uin
 }
 
 
-AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_t _threads,bool _sleep,IScriptEnvironment* env) :
+AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_t _threads,bool _sleep, bool negativePrefetch,IScriptEnvironment* env) :
 	GenericVideoFilter(_child), threshold(_threshold), mode(_mode), output(_output), threads(_threads),sleep(_sleep)
 {
 	bool ok;
@@ -6902,6 +6902,14 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 			FreeData();
 			poolInterface->DeAllocateAllThreads(true);
 			env->ThrowError("AutoYUY2: Error with the TheadPool while getting UserId!");
+		}
+		if (negativePrefetch)
+		{
+			if (!poolInterface->DisableWaitonRequest(UserId))
+			{
+				poolInterface->DeAllocateAllThreads(true);
+				env->ThrowError("AutoYUY2: Error with the TheadPool while disabling wait on request on UserId!");
+			}
 		}
 	}
 	has_at_least_v8=true;
@@ -7298,6 +7306,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	VideoInfo vi = args[0].AsClip()->GetVideoInfo();
 
 	const uint8_t pixelsize = (uint8_t)vi.ComponentSize();
+	bool negativePrefetch=false;
 
 	if ((pixelsize>16) || !vi.Is420())
 		env->ThrowError("AutoYUY2: Input format must be YUV420, 8 to 16 bits");
@@ -7319,6 +7328,9 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 	int prefetch=args[9].AsInt(0);
 	int thread_level=args[10].AsInt(6);
 
+	negativePrefetch=(prefetch<0)?true:false;
+	prefetch=abs(prefetch);
+
 	if ((mode<-1) || (mode>2))
 		env->ThrowError("AutoYUY2: [mode] must be -1 (Automatic), 0 (Progessive) , 1 (Interlaced) or 2 (Test).");
 	if ((output<0) || (output>1))
@@ -7329,7 +7341,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 		env->ThrowError("AutoYUY2: [ThreadLevel] must be between 1 and 7.");
 
 	if (prefetch==0) prefetch=1;
-	if ((prefetch<0) || (prefetch>MAX_THREAD_POOL)) env->ThrowError("AutoYUY2: [prefetch] must be between 0 and %d.",MAX_THREAD_POOL);
+	if (prefetch>MAX_THREAD_POOL) env->ThrowError("AutoYUY2: [prefetch] can't be higher than %d.",MAX_THREAD_POOL);
 
 	uint8_t threads_number=1;
 
@@ -7383,7 +7395,7 @@ AVSValue __cdecl Create_AutoYUY2(AVSValue args, void* user_data, IScriptEnvironm
 		}
 	}
 
-	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads_number,sleep, env);
+	return new AutoYUY2(args[0].AsClip(), thrs, mode, output, threads_number,sleep, negativePrefetch,env);
 }
 
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors)
