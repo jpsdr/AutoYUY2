@@ -26,6 +26,8 @@
 #include <math.h>
 #include "./AutoYUY2.h"
 
+#define myfree(ptr) if (ptr!=nullptr) { free(ptr); ptr=nullptr;}
+
 #if _MSC_VER >= 1900
 #define AVX2_BUILD_POSSIBLE
 #endif
@@ -6785,8 +6787,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 	{
 		for (int16_t i=0; i<Interlaced_Tab_Size; i++)
 		{
-			interlaced_tab_U[j][i]=NULL;
-			interlaced_tab_V[j][i]=NULL;
+			interlaced_tab_U[j][i]=nullptr;
+			interlaced_tab_V[j][i]=nullptr;
 		}
 	}
 	UserId=0;
@@ -6811,7 +6813,7 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 	lookup_Upscale8=(uint16_t *)malloc(3*256*sizeof(uint16_t));
 	lookup_Upscale16=(uint32_t *)malloc(3*vmax*sizeof(uint32_t));
 
-	if ((lookup_Upscale8==NULL) || (lookup_Upscale16==NULL))
+	if ((lookup_Upscale8==nullptr) || (lookup_Upscale16==nullptr))
 	{
 		FreeData();
 		if (threads>1) poolInterface->DeAllocateAllThreads(true);
@@ -6841,8 +6843,8 @@ AutoYUY2::AutoYUY2(PClip _child, int _threshold, int _mode,  int _output, uint8_
 		{
 			for (int16_t i=0; i<Interlaced_Tab_Size; i++)
 			{
-				ok=ok && (interlaced_tab_U[j][i]!=NULL);
-				ok=ok && (interlaced_tab_V[j][i]!=NULL);
+				ok=ok && (interlaced_tab_U[j][i]!=nullptr);
+				ok=ok && (interlaced_tab_V[j][i]!=nullptr);
 			}
 		}
 
@@ -7025,8 +7027,8 @@ PVideoFrame __stdcall AutoYUY2::GetFrame(int n, IScriptEnvironment* env)
 {
 	PVideoFrame src = child->GetFrame(n,env);
 	PVideoFrame dst = (has_at_least_v8)?env->NewVideoFrameP(vi,&src):env->NewVideoFrame(vi,64);
-	uint8_t *dstw=NULL;
-	uint8_t *dstYw=NULL,*dstUw=NULL,*dstVw=NULL;
+	uint8_t *dstw=nullptr;
+	uint8_t *dstYw=nullptr,*dstUw=nullptr,*dstVw=nullptr;
 	const uint8_t *srcYr = src->GetReadPtr(PLANAR_Y);
 	const uint8_t *srcUr = src->GetReadPtr(PLANAR_U);
 	const uint8_t *srcVr = src->GetReadPtr(PLANAR_V);
